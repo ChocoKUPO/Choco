@@ -1,0 +1,1361 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>미식노트 — 내 맛집 지도</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#E7EBE6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="미식노트">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+  :root{
+    --paper:#E7EBE6; --surface:#FFFFFF;
+    --ink:#131A17; --ink-soft:#5E6B64; --ink-faint:#93A099;
+    --line:#DBE2DB;
+    --celadon:#2F6B57; --celadon-deep:#1F4C3D; --celadon-soft:#E1EBE5;
+    --yuja:#D9A227; --brick:#B4432F;
+    --kakao:#FEE500; --kakao-ink:#191600;
+    --naver:#03C75A;
+    --r-card:16px;
+    --shadow:0 1px 2px rgba(19,26,23,.06), 0 8px 24px rgba(19,26,23,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+    font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;border:0;background:none}
+  :focus-visible{outline:2px solid var(--celadon);outline-offset:2px;border-radius:6px}
+
+  .app{max-width:520px;margin:0 auto;min-height:100dvh;background:var(--paper);
+    position:relative;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(19,26,23,.05)}
+  .topbar{position:sticky;top:0;z-index:30;background:var(--paper);padding:18px 20px 12px;
+    border-bottom:1px solid transparent;transition:border-color .2s}
+  .topbar.scrolled{border-color:var(--line)}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.045em}
+  .brand .count{font-size:12px;font-weight:700;color:var(--celadon);background:var(--celadon-soft);
+    padding:3px 9px;border-radius:999px;letter-spacing:-.02em}
+  .brand .sp{margin-left:auto}
+  .brand .iconbtn{font-size:16px;opacity:.55;padding:2px 3px}
+  .avatar{width:26px;height:26px;border-radius:50%;background:var(--celadon);color:#fff;
+    display:grid;place-items:center;font-size:11px;font-weight:800;overflow:hidden;letter-spacing:-.02em}
+  .avatar img{width:100%;height:100%;object-fit:cover}
+  .brand .tagline{margin:2px 0 0;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em;
+    display:flex;align-items:center;gap:6px}
+  .syncdot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);flex:0 0 6px}
+  .syncdot.ok{background:var(--celadon)}
+  .syncdot.busy{background:var(--yuja)}
+  .syncdot.off{background:#C9D2CB}
+
+  main{flex:1;padding:0 0 96px}
+  .view{display:none}
+  .view.on{display:block}
+
+  .search{padding:4px 20px 10px}
+  .search input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;
+    background:var(--surface);letter-spacing:-.02em}
+  .search input::placeholder{color:var(--ink-faint)}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:2px 20px 12px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-soft);
+    letter-spacing:-.02em;white-space:nowrap}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;padding:0 20px 10px}
+  .toolbar .n{font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em}
+  .toolbar select{border:0;background:none;font-size:13px;font-weight:600;color:var(--ink-soft)}
+
+  .cards{display:flex;flex-direction:column;gap:10px;padding:0 20px}
+  .card{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--shadow);
+    display:flex;overflow:hidden;text-align:left;width:100%}
+  .card .stripe{width:5px;flex:0 0 5px;background:var(--celadon)}
+  .card .body{padding:13px 14px;flex:1;min-width:0}
+  .card .row1{display:flex;align-items:center;gap:7px}
+  .card .emoji{font-size:16px;line-height:1}
+  .card .name{font-weight:750;font-size:16px;letter-spacing:-.035em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card .stars{margin-left:auto;font-size:12px;color:var(--yuja);letter-spacing:.5px;flex:0 0 auto}
+  .card .addr{margin-top:3px;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card .memo{margin-top:7px;font-size:13.5px;color:var(--ink-soft);letter-spacing:-.02em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .meta{display:flex;gap:6px;align-items:center;margin-top:9px;flex-wrap:wrap}
+  .tag{font-size:11px;font-weight:650;padding:3px 8px;border-radius:6px;
+    background:var(--celadon-soft);color:var(--celadon-deep);letter-spacing:-.02em}
+  .tag.plain{background:#F1F3F0;color:var(--ink-faint)}
+
+  .empty{padding:64px 32px;text-align:center}
+  .empty .mark{font-size:34px;opacity:.75}
+  .empty h2{margin:14px 0 6px;font-size:17px;font-weight:750;letter-spacing:-.04em}
+  .empty p{margin:0;font-size:13.5px;color:var(--ink-faint);letter-spacing:-.02em;line-height:1.6}
+  .empty .btn{margin-top:18px}
+
+  .mapwrap{padding:0 20px}
+  #map{height:calc(100dvh - 250px);min-height:320px;background:#DFE5DF;border-radius:14px;overflow:hidden}
+  body.mapmode{overflow:hidden;overscroll-behavior:none;
+    position:fixed;top:0;left:0;width:100%;height:100vh;height:100dvh}
+  body.mapmode .app{height:100%;overflow:hidden}
+  body.mapmode main{flex:1;min-height:0;padding-bottom:0;display:flex;flex-direction:column;overflow:hidden}
+  body.mapmode #v-map{flex:1;min-height:0;display:flex;flex-direction:column}
+  body.mapmode .mapwrap{flex:1;min-height:0;padding-bottom:62px}
+  body.mapmode #map{height:100%;min-height:0}
+  #map,#pickmap{overflow-anchor:none}
+  .leaflet-container:focus,.leaflet-container *:focus,
+  #map *:focus,#pickmap *:focus{outline:none}
+  .maphead{display:flex;align-items:center;gap:8px;padding:2px 20px 10px}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    padding:4px 9px;border-radius:999px;letter-spacing:-.02em}
+  .badge.kakao{background:#FFF3B0;color:#6B5A00}
+  .badge.osm{background:#EDEFEC;color:var(--ink-faint)}
+  .maphead .link{margin-left:auto;font-size:12px;font-weight:700;color:var(--celadon);letter-spacing:-.02em}
+  .notice{margin:0 20px 12px;padding:12px 14px;background:var(--surface);border-radius:13px;
+    border:1px dashed var(--line);font-size:12.5px;color:var(--ink-soft);letter-spacing:-.02em;line-height:1.6}
+  .notice b{color:var(--ink)}
+  .pin{display:grid;place-items:center;width:32px;height:32px;border-radius:50% 50% 50% 4px;
+    transform:rotate(-45deg);background:var(--celadon);box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid #fff}
+  .pin span{transform:rotate(45deg);font-size:14px;line-height:1}
+  .pinwrap{cursor:pointer}
+  .iw{padding:10px 12px;font-size:13px;letter-spacing:-.025em;line-height:1.45;max-width:210px;color:#131A17}
+  .iw b{font-weight:750}
+  .iw .s{color:#D9A227;font-size:11.5px}
+  .iw .a{color:#93A099;font-size:11.5px;margin-top:3px}
+  .iw a{color:#2F6B57;font-size:11.5px;font-weight:700;display:inline-block;margin-top:6px}
+
+  .panel{margin:0 20px 12px;background:var(--surface);border-radius:var(--r-card);padding:16px;box-shadow:var(--shadow)}
+  .panel h3{margin:0 0 4px;font-size:15px;font-weight:750;letter-spacing:-.035em}
+  .panel p{margin:0 0 12px;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em;line-height:1.6}
+  .panel ol{margin:0 0 12px;padding-left:18px;font-size:12.5px;color:var(--ink-soft);line-height:1.8;letter-spacing:-.02em}
+  .panel code{background:#F1F3F0;padding:1px 5px;border-radius:5px;font-size:11.5px;word-break:break-all}
+  textarea{width:100%;min-height:88px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;
+    resize:vertical;font-size:12.5px;line-height:1.5;background:#FBFCFB;word-break:break-all}
+  textarea.sql{min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;
+    border-radius:11px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;letter-spacing:-.03em}
+  .btn.full{width:100%}
+  .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .btn.green{background:var(--celadon)}
+  .btn.kakao{background:var(--kakao);color:var(--kakao-ink)}
+  .btn.danger{background:none;color:var(--brick);border:1px solid #EBD3CD}
+  .btn.sm{padding:10px 13px;font-size:13px;white-space:nowrap}
+  .btn-row{display:flex;gap:8px;margin-top:10px}
+  .btn-row .btn{flex:1}
+
+  .pick-list{display:flex;flex-direction:column;gap:2px;margin:-4px 0 12px;max-height:220px;overflow:auto}
+  .pick{display:flex;align-items:center;gap:9px;padding:8px 2px;font-size:14px;letter-spacing:-.025em}
+  .pick input{width:17px;height:17px;accent-color:var(--celadon)}
+  .pick .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;
+    background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom)}
+  .tab{padding:9px 0 11px;display:grid;justify-items:center;gap:3px;color:var(--ink-faint)}
+  .tab.on{color:var(--ink)}
+  .tab .ic{font-size:17px;line-height:1}
+  .tab .lb{font-size:10.5px;font-weight:700;letter-spacing:-.02em}
+
+  .fab{position:fixed;bottom:calc(74px + env(safe-area-inset-bottom));z-index:41;
+    left:50%;transform:translateX(-50%);margin-left:186px;width:54px;height:54px;border-radius:50%;
+    background:var(--celadon);color:#fff;font-size:26px;font-weight:300;line-height:1;
+    box-shadow:0 6px 20px rgba(47,107,87,.38);display:grid;place-items:center}
+  @media (max-width:519px){.fab{left:auto;right:18px;transform:none;margin:0}}
+
+  .scrim{position:fixed;inset:0;background:rgba(19,26,23,.42);z-index:50;opacity:0;
+    pointer-events:none;transition:opacity .22s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;max-width:520px;margin:0 auto;
+    background:var(--paper);border-radius:22px 22px 0 0;max-height:92dvh;overflow:auto;
+    transform:translateY(102%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+    padding-bottom:calc(20px + env(safe-area-inset-bottom));
+    pointer-events:none;visibility:hidden}
+  .sheet.on{transform:none;pointer-events:auto;visibility:visible}
+  .sheet-head{position:sticky;top:0;background:var(--paper);padding:16px 20px 10px;z-index:2;
+    display:flex;align-items:center;justify-content:space-between}
+  .sheet-head h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.04em}
+  .sheet-head button{font-size:14px;font-weight:700;color:var(--ink-soft);letter-spacing:-.02em}
+  .form{padding:0 20px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:750;color:var(--ink-soft);margin-bottom:6px}
+  .field input[type=text],.field input[type=date],.field select,.field textarea{
+    width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
+    background:var(--surface);letter-spacing:-.025em}
+  .field textarea{min-height:74px;font-size:14px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .inline{display:flex;gap:8px}
+  .inline input{flex:1;min-width:0}
+  .hint{margin:6px 0 0;font-size:11.5px;color:var(--ink-faint);letter-spacing:-.02em;line-height:1.5}
+  .rate{display:flex;gap:4px}
+  .rate button{font-size:25px;line-height:1;color:#D8DED8;padding:0 1px}
+  .rate button.on{color:var(--yuja)}
+  .catgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .cat{padding:9px 2px;border-radius:11px;background:var(--surface);border:1px solid var(--line);
+    display:grid;justify-items:center;gap:3px;font-size:11.5px;font-weight:650;letter-spacing:-.02em;color:var(--ink-soft)}
+  .cat.on{border-color:var(--ink);background:var(--ink);color:#fff}
+  .cat .e{font-size:16px;line-height:1}
+  #pickmap{height:180px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#DFE5DF}
+  .coord{margin-top:6px;font-size:11.5px;color:var(--ink-faint);letter-spacing:-.02em}
+  .results{margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
+  .ritem{text-align:left;padding:10px 12px;background:var(--surface);border:1px solid var(--line);
+    border-radius:11px;line-height:1.4}
+  .ritem .rn{font-size:14px;font-weight:700;letter-spacing:-.03em}
+  .ritem .rc{font-size:11px;color:var(--celadon);font-weight:650;margin-top:2px}
+  .ritem .ra{font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+  .searchbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:14px}
+  .searchbox .lbl{font-size:12px;font-weight:750;color:var(--ink-soft);margin-bottom:7px}
+
+  /* ---- 로그인 화면 ---- */
+  .login{position:fixed;inset:0;z-index:70;background:var(--paper);
+    display:none;align-items:center;justify-content:center;padding:28px 24px;overflow:auto}
+  .login.on{display:flex}
+  .loginbox{width:100%;max-width:360px;text-align:center}
+  .loginbox .lmark{font-size:40px}
+  .loginbox h1{margin:14px 0 0;font-size:27px;font-weight:800;letter-spacing:-.05em}
+  .loginbox .sub{margin:8px 0 30px;font-size:13.5px;color:var(--ink-soft);
+    letter-spacing:-.025em;line-height:1.65}
+  .sns{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:14px;border-radius:12px;font-size:14.5px;font-weight:750;letter-spacing:-.03em;margin-bottom:9px}
+  .sns .ic{font-size:16px;line-height:1}
+  .sns.k{background:var(--kakao);color:var(--kakao-ink)}
+  .sns.n{background:var(--naver);color:#fff}
+  .sns.g{background:#fff;color:#1F1F1F;border:1px solid #DADCE0}
+  .later{margin-top:14px;font-size:13px;font-weight:650;color:var(--ink-soft);
+    letter-spacing:-.025em;text-decoration:underline;text-underline-offset:3px}
+  .loginfoot{margin:22px 0 0;font-size:11.5px;color:var(--ink-faint);line-height:1.65;letter-spacing:-.02em}
+  .loginwarn{margin:0 0 20px;padding:11px 13px;border-radius:11px;background:#FFF6E5;
+    color:#7A5A00;font-size:12px;line-height:1.6;letter-spacing:-.02em;text-align:left}
+
+  /* ---- 계정 ---- */
+  .acct{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .acct .big{width:44px;height:44px;border-radius:50%;background:var(--celadon);color:#fff;
+    display:grid;place-items:center;font-size:16px;font-weight:800;overflow:hidden;flex:0 0 44px}
+  .acct .big img{width:100%;height:100%;object-fit:cover}
+  .acct .who{min-width:0}
+  .acct .who b{display:block;font-size:15px;font-weight:750;letter-spacing:-.035em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acct .who span{font-size:12px;color:var(--ink-faint);letter-spacing:-.02em}
+
+  .toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;
+    transform:translate(-50%,10px);background:var(--ink);color:#fff;padding:11px 17px;border-radius:999px;
+    font-size:13.5px;font-weight:650;letter-spacing:-.025em;z-index:80;opacity:0;pointer-events:none;
+    transition:.22s;max-width:88%;text-align:center;line-height:1.4}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<!-- ================= 로그인 화면 ================= -->
+<div class="login" id="login">
+  <div class="loginbox">
+    <div class="lmark">🥢</div>
+    <h1>미식노트</h1>
+    <p class="sub">맛있었던 곳을 남기고,<br>어느 기기에서 열어도 그대로 꺼내 보세요.</p>
+    <div class="loginwarn" id="loginwarn" style="display:none"></div>
+    <button class="sns k" id="in-kakao"><span class="ic">💬</span>카카오로 시작하기</button>
+    <button class="sns n" id="in-naver"><span class="ic">N</span>네이버로 시작하기</button>
+    <button class="sns g" id="in-google"><span class="ic">G</span>Google로 시작하기</button>
+    <button class="later" id="in-skip">로그인 없이 이 기기에서만 쓰기</button>
+    <p class="loginfoot">로그인하면 저장한 맛집이 계정에 보관됩니다.<br>기기를 바꾸거나 앱을 지워도 그대로 남습니다.</p>
+  </div>
+</div>
+
+<div class="app">
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <h1>미식노트</h1>
+      <span class="count" id="count">0곳</span>
+      <span class="sp"></span>
+      <button class="iconbtn" id="gear" aria-label="설정">⚙</button>
+      <button class="avatar" id="me" aria-label="계정">?</button>
+    </div>
+    <p class="tagline"><span class="syncdot off" id="syncdot"></span><span id="synctext">이 기기에만 저장 중</span></p>
+  </header>
+
+  <main>
+    <section class="view on" id="v-list">
+      <div class="search"><input type="text" id="q" placeholder="가게 이름, 메모, 태그 검색"></div>
+      <div class="chips" id="catchips"></div>
+      <div class="toolbar">
+        <span class="n" id="listcount"></span>
+        <select id="sort">
+          <option value="new">최근 저장순</option>
+          <option value="rate">평점순</option>
+          <option value="name">이름순</option>
+        </select>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <section class="view" id="v-map">
+      <div class="maphead">
+        <span class="badge osm" id="mapbadge">지도 준비 중</span>
+        <button class="link" id="gomapset">지도 설정</button>
+      </div>
+      <div class="notice" id="mapnotice" style="display:none">
+        <b>카카오맵 키가 아직 없습니다.</b> 지금은 임시 지도로 보여 드립니다.
+        ⚙ 설정에서 JavaScript 키를 넣으면 카카오맵으로 바뀌고, 가게 이름 검색이 켜집니다.
+      </div>
+      <div class="mapwrap"><div id="map"></div></div>
+    </section>
+
+    <section class="view" id="v-share">
+      <div class="panel">
+        <h3>내 목록 공유하기</h3>
+        <p>공유할 곳을 고르면 공유 코드가 만들어집니다. 코드를 카톡으로 보내면 상대가 그대로 가져갑니다.</p>
+        <div class="pick-list" id="picklist"></div>
+        <div class="btn-row">
+          <button class="btn ghost" id="pickall">전체 선택</button>
+          <button class="btn green" id="makecode">공유 코드 만들기</button>
+        </div>
+        <div id="codewrap" style="display:none;margin-top:12px">
+          <textarea id="code" readonly></textarea>
+          <div class="btn-row">
+            <button class="btn" id="copycode">코드 복사</button>
+            <button class="btn ghost" id="copytext">글로 복사</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>받은 코드 가져오기</h3>
+        <p>친구가 보낸 공유 코드를 붙여넣으면 내 목록에 더해집니다. 이미 있는 곳은 건너뜁니다.</p>
+        <textarea id="incode" placeholder="여기에 공유 코드를 붙여넣으세요"></textarea>
+        <div class="btn-row"><button class="btn full" id="importbtn">내 목록에 담기</button></div>
+      </div>
+      <div class="panel">
+        <h3>백업</h3>
+        <p>계정 없이 쓰시거나, 통째로 옮기고 싶을 때 파일로 내려받아 두세요.</p>
+        <div class="btn-row">
+          <button class="btn ghost" id="exportfile">파일로 내보내기</button>
+          <button class="btn ghost" id="importfile">파일 불러오기</button>
+        </div>
+        <input type="file" id="filein" accept="application/json" style="display:none">
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab on" data-view="list"><span class="ic">🍚</span><span class="lb">목록</span></button>
+    <button class="tab" data-view="map"><span class="ic">📍</span><span class="lb">지도</span></button>
+    <button class="tab" data-view="share"><span class="ic">🔗</span><span class="lb">공유</span></button>
+  </nav>
+  <button class="fab" id="fab" aria-label="맛집 추가">+</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- 맛집 입력 -->
+<div class="sheet" id="sheet">
+  <div class="sheet-head">
+    <button id="cancel">닫기</button>
+    <h2 id="sheettitle">맛집 남기기</h2>
+    <button id="save" style="color:var(--celadon)">저장</button>
+  </div>
+  <div class="form">
+    <div class="searchbox" id="kwbox">
+      <div class="lbl">가게 찾아서 채우기</div>
+      <div class="inline">
+        <input type="text" id="f-kw" placeholder="예: 을지로 골목집, 성수 카페">
+        <button class="btn kakao sm" id="kwbtn">검색</button>
+      </div>
+      <p class="hint">이름을 찾아 누르면 주소·좌표·종류가 한 번에 채워집니다.</p>
+      <div class="results" id="kwresults"></div>
+    </div>
+    <div class="field">
+      <label for="f-name">가게 이름</label>
+      <input type="text" id="f-name" placeholder="예: 을지로 골목집">
+    </div>
+    <div class="field">
+      <label>종류</label>
+      <div class="catgrid" id="catgrid"></div>
+    </div>
+    <div class="field">
+      <label>내 점수</label>
+      <div class="rate" id="rate"></div>
+    </div>
+    <div class="field">
+      <label for="f-addr">주소</label>
+      <div class="inline">
+        <input type="text" id="f-addr" placeholder="예: 중구 을지로 12길 3">
+        <button class="btn ghost sm" id="geobtn">주소로 찾기</button>
+      </div>
+      <div class="results" id="georesults"></div>
+    </div>
+    <div class="field">
+      <label>지도에 찍기</label>
+      <div id="pickmap"></div>
+      <div class="btn-row"><button class="btn ghost" id="here">현재 위치로</button></div>
+      <p class="coord" id="coord">지도를 눌러 위치를 정하세요.</p>
+    </div>
+    <div class="field two">
+      <div>
+        <label for="f-folder">저장 목록</label>
+        <select id="f-folder"></select>
+      </div>
+      <div>
+        <label for="f-date">방문일</label>
+        <input type="date" id="f-date">
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-tags">태그 (쉼표로 구분)</label>
+      <input type="text" id="f-tags" placeholder="예: 혼밥, 주차가능, 웨이팅">
+    </div>
+    <div class="field">
+      <label for="f-memo">한 줄 기록</label>
+      <textarea id="f-memo" placeholder="뭐가 맛있었는지, 다음에 뭘 시킬지"></textarea>
+    </div>
+    <div class="field" id="delwrap" style="display:none">
+      <button class="btn danger full" id="del">이 기록 지우기</button>
+    </div>
+    <div style="height:12px"></div>
+  </div>
+</div>
+
+<!-- 계정 -->
+<div class="sheet" id="acctsheet">
+  <div class="sheet-head">
+    <button id="acctclose">닫기</button>
+    <h2>내 계정</h2>
+    <span style="width:34px"></span>
+  </div>
+  <div class="form">
+    <div class="panel" style="margin:0 0 12px" id="acctpanel"></div>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<!-- 설정 -->
+<div class="sheet" id="setsheet">
+  <div class="sheet-head">
+    <button id="setclose">닫기</button>
+    <h2>설정</h2>
+    <span style="width:34px"></span>
+  </div>
+  <div class="form">
+    <div class="panel" style="margin:0 0 12px">
+      <h3>카카오맵 JavaScript 키</h3>
+      <p>지도와 가게 검색에 쓰입니다. REST API 키가 아니라 <b>JavaScript 키</b>입니다.</p>
+      <div class="field" style="margin:0">
+        <input type="text" id="f-key" placeholder="예: 0a1b2c3d4e5f6g7h8i9j" autocapitalize="off" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" id="keyclear">키 지우기</button>
+        <button class="btn kakao" id="keysave">키 적용</button>
+      </div>
+      <p id="keystate"></p>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>계정 서버 (Supabase)</h3>
+      <p>SNS 로그인과 기기 간 동기화를 맡는 곳입니다. 두 값 모두 공개되어도 되는 값이라 앱에 넣어도 안전합니다.</p>
+      <div class="field">
+        <label for="f-sburl">프로젝트 URL</label>
+        <input type="text" id="f-sburl" placeholder="https://xxxx.supabase.co" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="f-sbkey">anon public key</label>
+        <input type="text" id="f-sbkey" placeholder="eyJhbGciOi..." autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label for="f-naverid">네이버 provider 이름</label>
+        <input type="text" id="f-naverid" placeholder="naver" autocapitalize="off" spellcheck="false">
+        <p class="hint">네이버는 Supabase 기본 목록에 없어서 Custom OAuth로 직접 등록해야 합니다. 등록할 때 정한 이름을 여기에 적으세요.</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" id="sbclear">지우기</button>
+        <button class="btn green" id="sbsave">저장</button>
+      </div>
+      <p id="sbstate"></p>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>서버 준비 순서</h3>
+      <ol>
+        <li>supabase.com 가입 후 프로젝트 생성 (무료)</li>
+        <li>Authentication &gt; Providers에서 <b>Kakao</b>, <b>Google</b> 켜기</li>
+        <li>URL Configuration에 이 앱 주소를 Redirect URL로 추가</li>
+        <li>SQL Editor에서 아래 문장 실행</li>
+        <li>Settings &gt; API의 URL과 anon key를 위에 붙여넣기</li>
+      </ol>
+      <textarea class="sql" id="sqltext" readonly></textarea>
+      <div class="btn-row"><button class="btn ghost" id="copysql">SQL 복사</button></div>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   저장소 shim
+   Claude 미리보기 밖(휴대폰, 웹서버, 안드로이드 앱)에서는 window.storage가
+   없습니다. 같은 모양의 API를 브라우저 저장소로 대신 만들어 둡니다.
+------------------------------------------------------------------- */
+(function(){
+  if (window.storage && typeof window.storage.get === 'function') return;
+  var mem = {};
+  function ok(){ try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return true; }catch(e){ return false; } }
+  var real = ok();
+  window.storage = {
+    get: function(k){
+      return new Promise(function(res, rej){
+        var v = real ? localStorage.getItem(k) : (k in mem ? mem[k] : null);
+        if (v === null || v === undefined) rej(new Error('not found'));
+        else res({key:k, value:v});
+      });
+    },
+    set: function(k, v){
+      return new Promise(function(res){
+        if (real) localStorage.setItem(k, v); else mem[k] = v;
+        res({key:k, value:v});
+      });
+    },
+    'delete': function(k){
+      return new Promise(function(res){
+        if (real) localStorage.removeItem(k); else delete mem[k];
+        res({key:k, deleted:true});
+      });
+    },
+    list: function(prefix){
+      return new Promise(function(res){
+        var keys = [];
+        if (real) { for (var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(!prefix||k.indexOf(prefix)===0) keys.push(k); } }
+        else { for (var k2 in mem) if(!prefix||k2.indexOf(prefix)===0) keys.push(k2); }
+        res({keys:keys});
+      });
+    }
+  };
+})();
+
+/* 서비스워커: 오프라인에서도 앱이 열리게 합니다 */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+
+<script>
+(function(){
+  const CATS = [
+    {id:'kor', name:'한식', e:'🍚', c:'#2F6B57'},
+    {id:'jpn', name:'일식', e:'🍣', c:'#3B6E8C'},
+    {id:'chn', name:'중식', e:'🥟', c:'#B4432F'},
+    {id:'west',name:'양식', e:'🍝', c:'#8A6A3B'},
+    {id:'bun', name:'분식', e:'🍜', c:'#C4772A'},
+    {id:'cafe',name:'카페', e:'☕️', c:'#6B5B4A'},
+    {id:'bar', name:'술집', e:'🍺', c:'#5C6E2F'},
+    {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
+  ];
+  const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
+  const DKEY='misiknote:v4', SKEY='misiknote:session';
+  const SEOUL={lat:37.5665,lng:126.9780};
+  const SQL = [
+    'create table if not exists public.notes (',
+    '  user_id uuid primary key references auth.users on delete cascade,',
+    "  payload jsonb not null default '{}'::jsonb,",
+    '  updated_at timestamptz not null default now()',
+    ');',
+    'alter table public.notes enable row level security;',
+    'create policy "read own"   on public.notes for select using (auth.uid() = user_id);',
+    'create policy "insert own" on public.notes for insert with check (auth.uid() = user_id);',
+    'create policy "update own" on public.notes for update using (auth.uid() = user_id);'
+  ].join('\n');
+
+  let state = {places:[], kakaoKey:'', sb:{url:'',key:'',naver:'naver'}, owner:'local', skipLogin:false};
+  let session = null;
+  let filter={q:'',cat:'all',sort:'new'};
+  let editing=null, draft={rating:0,cat:'kor',lat:null,lng:null,url:''};
+  let picked=new Set();
+  let provider='none', M=null, mainMap=null, pickMap=null;
+  let pushTimer=null;
+
+  const $ = s => document.querySelector(s);
+  const el = (t,c) => { const n=document.createElement(t); if(c) n.className=c; return n; };
+  const cat = id => CATS.find(c=>c.id===id) || CATS[7];
+  const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const esc = s => (s||'').replace(/[<>&"]/g, m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+  const pinHTML = c => '<div class="pin" style="background:'+c.c+'"><span>'+c.e+'</span></div>';
+  const base = () => (state.sb.url||'').replace(/\/+$/,'');
+
+  function toast(msg){
+    const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+    clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('on'),2600);
+  }
+
+  document.addEventListener('click', e=>{
+    if(!e.target.closest) return;
+    if(!(e.target.closest('#map')||e.target.closest('#pickmap'))) return;
+    const a=e.target.closest('a'); if(!a) return;
+    const href=a.getAttribute('href')||'';
+    e.preventDefault(); e.stopPropagation();
+    if(/^https?:/i.test(href)){ try{ window.open(href,'_blank','noopener'); }catch(_){} }
+  }, true);
+
+  function lockScroll(node, scroller){
+    if(!node || node._locked) return;
+    node._locked=true;
+    const get=()=> scroller===window ? window.scrollY : scroller.scrollTop;
+    const set=v=>{ if(scroller===window) window.scrollTo(0,v); else scroller.scrollTop=v; };
+    let saved=0;
+    const remember=()=>{ saved=get(); };
+    const restore=()=>{ const v=saved; requestAnimationFrame(()=>set(v)); setTimeout(()=>set(v),0); setTimeout(()=>set(v),140); };
+    node.addEventListener('pointerdown',remember,true);
+    node.addEventListener('touchstart',remember,{capture:true,passive:true});
+    node.addEventListener('click',restore,true);
+    node.addEventListener('focusin',restore,true);
+  }
+
+  /* ================= 저장소 ================= */
+  async function loadLocal(){
+    try{ const r=await window.storage.get(DKEY); if(r&&r.value) state=Object.assign(state, JSON.parse(r.value)); }catch(e){}
+    if(!Array.isArray(state.places)) state.places=[];
+    if(!state.sb) state.sb={url:'',key:'',naver:'naver'};
+    if(!state.sb.naver) state.sb.naver='naver';
+    if(typeof state.kakaoKey!=='string') state.kakaoKey='';
+    if(!state.owner) state.owner='local';
+  }
+  async function saveLocal(){
+    try{ await window.storage.set(DKEY, JSON.stringify(state)); }
+    catch(e){ toast('이 기기에 저장하지 못했습니다.'); }
+  }
+  async function loadSession(){
+    try{ const r=await window.storage.get(SKEY); if(r&&r.value) session=JSON.parse(r.value); }catch(e){}
+  }
+  async function saveSession(){
+    try{
+      if(session) await window.storage.set(SKEY, JSON.stringify(session));
+      else await window.storage.set(SKEY, '');
+    }catch(e){}
+  }
+
+  /* ================= 로그인 / 동기화 ================= */
+  const cloudOn = () => !!(state.sb.url && state.sb.key);
+
+  const Auth = {
+    hdr(extra){
+      const h=Object.assign({'apikey':state.sb.key,'Content-Type':'application/json'}, extra||{});
+      if(session && session.access_token) h['Authorization']='Bearer '+session.access_token;
+      return h;
+    },
+    start(provider){
+      if(!cloudOn()){ toast('먼저 설정에서 계정 서버를 연결해 주세요.'); openSettings(); return; }
+      const back = location.origin + location.pathname;
+      location.href = base()+'/auth/v1/authorize?provider='+encodeURIComponent(provider)+
+                      '&redirect_to='+encodeURIComponent(back);
+    },
+    async readRedirect(){
+      const h = location.hash || '';
+      if(h.indexOf('access_token')<0 && h.indexOf('error')<0) return false;
+      const p = new URLSearchParams(h.replace(/^#/,''));
+      history.replaceState(null,'',location.pathname+location.search);
+      if(p.get('error')){ toast('로그인이 취소되었거나 실패했습니다.'); return false; }
+      const at=p.get('access_token'); if(!at) return false;
+      session={access_token:at, refresh_token:p.get('refresh_token')||'',
+               expires_at:Math.floor(Date.now()/1000)+parseInt(p.get('expires_in')||'3600',10)};
+      try{ await this.loadUser(); }catch(e){ session=null; toast('로그인 정보를 읽지 못했습니다.'); return false; }
+      await saveSession();
+      return true;
+    },
+    async loadUser(){
+      const r=await fetch(base()+'/auth/v1/user',{headers:this.hdr()});
+      if(!r.ok) throw new Error('user');
+      const u=await r.json(), m=u.user_metadata||{};
+      session.user={ id:u.id, email:u.email||'',
+        name:m.name||m.full_name||m.nickname||m.user_name||'',
+        avatar:m.avatar_url||m.picture||m.profile_image||'',
+        provider:(u.app_metadata&&u.app_metadata.provider)||'' };
+    },
+    async refresh(){
+      if(!session||!session.refresh_token) return false;
+      try{
+        const r=await fetch(base()+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
+          headers:{'apikey':state.sb.key,'Content-Type':'application/json'},
+          body:JSON.stringify({refresh_token:session.refresh_token})});
+        if(!r.ok) return false;
+        const d=await r.json();
+        session.access_token=d.access_token;
+        session.refresh_token=d.refresh_token||session.refresh_token;
+        session.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);
+        await saveSession(); return true;
+      }catch(e){ return false; }
+    },
+    async ok(){
+      if(!cloudOn()||!session) return false;
+      if(session.expires_at && session.expires_at-60 < Math.floor(Date.now()/1000)) return await this.refresh();
+      return true;
+    },
+    async out(){
+      try{ await fetch(base()+'/auth/v1/logout',{method:'POST',headers:this.hdr()}); }catch(e){}
+      session=null; await saveSession();
+    }
+  };
+
+  const Cloud = {
+    async pull(){
+      if(!await Auth.ok()) return null;
+      try{
+        const r=await fetch(base()+'/rest/v1/notes?select=payload',{headers:Auth.hdr()});
+        if(!r.ok) return null;
+        const rows=await r.json();
+        return rows[0] && rows[0].payload ? rows[0].payload : {places:[]};
+      }catch(e){ return null; }
+    },
+    async push(){
+      if(!await Auth.ok()) return false;
+      setSync('busy','저장 중');
+      try{
+        const body=[{user_id:session.user.id, payload:{places:state.places}, updated_at:new Date().toISOString()}];
+        const r=await fetch(base()+'/rest/v1/notes',{method:'POST',
+          headers:Auth.hdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+          body:JSON.stringify(body)});
+        if(!r.ok){ setSync('off','동기화 실패'); return false; }
+        setSync('ok','계정에 저장됨');
+        return true;
+      }catch(e){ setSync('off','연결 안 됨'); return false; }
+    }
+  };
+
+  function schedulePush(){
+    if(!session) return;
+    clearTimeout(pushTimer);
+    setSync('busy','저장 중');
+    pushTimer=setTimeout(()=>Cloud.push(), 1200);
+  }
+
+  function mergePlaces(a,b){
+    const m=new Map();
+    a.concat(b).forEach(p=>{
+      if(!p||!p.id) return;
+      const cur=m.get(p.id);
+      const t=p.updated||p.created||0;
+      if(!cur || t > (cur.updated||cur.created||0)) m.set(p.id,p);
+    });
+    const out=[...m.values()];
+    const seen=new Set(), fin=[];
+    out.forEach(p=>{
+      const k=(p.name||'')+'|'+(p.addr||'');
+      if(seen.has(k)) return;
+      seen.add(k); fin.push(p);
+    });
+    return fin.sort((x,y)=>(y.created||0)-(x.created||0));
+  }
+
+  async function syncAfterLogin(){
+    setSync('busy','불러오는 중');
+    const cloud = await Cloud.pull();
+    if(cloud===null){ setSync('off','서버에 닿지 못함'); return; }
+    const cloudPlaces = Array.isArray(cloud.places)?cloud.places:[];
+    const sameOwner = state.owner===session.user.id;
+    if(sameOwner || state.owner==='local'){
+      state.places = mergePlaces(cloudPlaces, state.places);
+    }else{
+      state.places = cloudPlaces;   // 다른 계정으로 바꿔 로그인한 경우
+    }
+    state.owner = session.user.id;
+    await saveLocal();
+    renderList(); drawPins(); renderPick();
+    await Cloud.push();
+  }
+
+  function setSync(kind, text){
+    const d=$('#syncdot'), t=$('#synctext');
+    d.className='syncdot '+(kind||'off');
+    t.textContent=text;
+  }
+  function refreshAccountUI(){
+    const av=$('#me');
+    if(session && session.user){
+      const u=session.user;
+      av.innerHTML = u.avatar ? '<img src="'+esc(u.avatar)+'" alt="">' : esc((u.name||u.email||'나').charAt(0));
+      setSync('ok','계정에 저장됨');
+    }else{
+      av.textContent='?';
+      setSync('off', cloudOn()?'로그인하면 기기 간 동기화':'이 기기에만 저장 중');
+    }
+  }
+  function providerLabel(p){
+    return ({kakao:'카카오',google:'Google',naver:'네이버'})[p] || p || '계정';
+  }
+
+  function renderAccount(){
+    const box=$('#acctpanel');
+    if(session && session.user){
+      const u=session.user;
+      box.innerHTML =
+        '<div class="acct">'+
+          '<div class="big">'+(u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc((u.name||u.email||'나').charAt(0)))+'</div>'+
+          '<div class="who"><b>'+esc(u.name||u.email||'로그인됨')+'</b>'+
+          '<span>'+esc(providerLabel(u.provider))+' 로그인'+(u.email?' · '+esc(u.email):'')+'</span></div>'+
+        '</div>'+
+        '<p style="margin:0 0 12px">저장한 '+state.places.length+'곳이 계정에 보관됩니다. 다른 기기에서 같은 계정으로 로그인하면 그대로 나타납니다.</p>'+
+        '<div class="btn-row"><button class="btn ghost" id="syncnow">지금 동기화</button>'+
+        '<button class="btn danger" id="signout">로그아웃</button></div>';
+      $('#syncnow').onclick = async () => {
+        setSync('busy','동기화 중');
+        const c=await Cloud.pull();
+        if(c===null){ toast('서버에 닿지 못했습니다.'); setSync('off','연결 안 됨'); return; }
+        state.places=mergePlaces(Array.isArray(c.places)?c.places:[], state.places);
+        await saveLocal(); renderList(); drawPins(); renderPick(); renderAccount();
+        await Cloud.push(); toast('동기화했습니다.');
+      };
+      $('#signout').onclick = async () => {
+        if(!confirm('로그아웃할까요? 이 기기에 남은 기록은 그대로 두고, 계정 연결만 끊습니다.')) return;
+        await Auth.out(); refreshAccountUI(); renderAccount(); closeAccount(); toast('로그아웃했습니다.');
+      };
+    }else{
+      box.innerHTML =
+        '<h3>아직 로그인하지 않았습니다</h3>'+
+        '<p>지금은 이 기기에만 저장됩니다. 앱을 지우거나 기기를 바꾸면 기록이 사라집니다. '+
+        '로그인하면 지금 있는 '+state.places.length+'곳이 계정으로 옮겨지고, 이후에는 어디서 열어도 같습니다.</p>'+
+        '<button class="sns k" id="a-kakao"><span class="ic">💬</span>카카오로 로그인</button>'+
+        '<button class="sns n" id="a-naver"><span class="ic">N</span>네이버로 로그인</button>'+
+        '<button class="sns g" id="a-google"><span class="ic">G</span>Google로 로그인</button>'+
+        (cloudOn()?'':'<p class="hint" style="margin-top:10px">계정 서버가 아직 연결되지 않았습니다. 설정에서 먼저 연결해 주세요.</p>');
+      $('#a-kakao').onclick=()=>Auth.start('kakao');
+      $('#a-naver').onclick=()=>Auth.start(state.sb.naver||'naver');
+      $('#a-google').onclick=()=>Auth.start('google');
+    }
+  }
+
+  /* 로그인 화면 */
+  function showLogin(){
+    const w=$('#loginwarn');
+    if(!cloudOn()){
+      w.style.display='block';
+      w.innerHTML='계정 서버가 아직 연결되지 않아 SNS 로그인 버튼이 동작하지 않습니다. '+
+                  '아래 <b>로그인 없이 시작</b>으로 먼저 써 보시고, 나중에 설정에서 연결하면 그때 기록이 계정으로 올라갑니다.';
+    }else w.style.display='none';
+    $('#login').classList.add('on');
+  }
+  function hideLogin(){ $('#login').classList.remove('on'); }
+  $('#in-kakao').onclick=()=>Auth.start('kakao');
+  $('#in-naver').onclick=()=>Auth.start(state.sb.naver||'naver');
+  $('#in-google').onclick=()=>Auth.start('google');
+  $('#in-skip').onclick=async()=>{ state.skipLogin=true; await saveLocal(); hideLogin(); };
+
+  /* ================= 지도 ================= */
+  const ZOOM={kakao:{wide:8,mid:5,close:2}, leaflet:{wide:11,mid:14,close:17}};
+
+  const KakaoAdapter={
+    name:'kakao',
+    create(id,center,z,onClick){
+      const m=new kakao.maps.Map(document.getElementById(id),{
+        center:new kakao.maps.LatLng(center.lat,center.lng), level:ZOOM.kakao[z]});
+      m.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+      if(onClick) kakao.maps.event.addListener(m,'click',e=>onClick(e.latLng.getLat(),e.latLng.getLng()));
+      return {m,overlays:[],iw:null};
+    },
+    marker(h,lat,lng,c,html){
+      const wrap=el('div','pinwrap'); wrap.innerHTML=pinHTML(c);
+      const pos=new kakao.maps.LatLng(lat,lng);
+      const ov=new kakao.maps.CustomOverlay({position:pos,content:wrap,yAnchor:1,xAnchor:.5,clickable:true});
+      ov.setMap(h.m);
+      if(html) wrap.addEventListener('click',()=>{
+        if(!h.iw) h.iw=new kakao.maps.InfoWindow({removable:true});
+        h.iw.setContent(html); h.iw.setPosition(pos); h.iw.open(h.m);
+      });
+      h.overlays.push(ov); return ov;
+    },
+    clear(h){ h.overlays.forEach(o=>o.setMap(null)); h.overlays=[]; if(h.iw) h.iw.close(); },
+    move(h,lat,lng,z){ h.m.setCenter(new kakao.maps.LatLng(lat,lng)); if(z) h.m.setLevel(ZOOM.kakao[z]); },
+    fit(h,pts){
+      if(!pts.length) return;
+      if(pts.length===1) return this.move(h,pts[0][0],pts[0][1],'close');
+      const b=new kakao.maps.LatLngBounds();
+      pts.forEach(p=>b.extend(new kakao.maps.LatLng(p[0],p[1])));
+      h.m.setBounds(b,40,40,40,40);
+    },
+    resize(h){ h.m.relayout(); }
+  };
+
+  const LeafletAdapter={
+    name:'leaflet',
+    create(id,center,z,onClick){
+      const m=L.map(id,{zoomControl:false,keyboard:false}).setView([center.lat,center.lng],ZOOM.leaflet[z]);
+      m.getContainer().removeAttribute('tabindex');
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(m);
+      L.control.zoom({position:'bottomright'}).addTo(m);
+      if(onClick) m.on('click',e=>onClick(e.latlng.lat,e.latlng.lng));
+      return {m,overlays:[]};
+    },
+    marker(h,lat,lng,c,html){
+      const icon=L.divIcon({html:pinHTML(c),className:'',iconSize:[32,32],iconAnchor:[16,30],popupAnchor:[0,-28]});
+      const mk=L.marker([lat,lng],{icon}).addTo(h.m);
+      if(html) mk.bindPopup(html);
+      h.overlays.push(mk); return mk;
+    },
+    clear(h){ h.overlays.forEach(o=>h.m.removeLayer(o)); h.overlays=[]; },
+    move(h,lat,lng,z){ h.m.setView([lat,lng], z?ZOOM.leaflet[z]:h.m.getZoom()); },
+    fit(h,pts){ if(pts.length) h.m.fitBounds(pts,{padding:[46,46],maxZoom:17}); },
+    resize(h){ h.m.invalidateSize(); }
+  };
+
+  function loadKakao(key){
+    return new Promise((res,rej)=>{
+      if(window.kakao&&window.kakao.maps&&window.kakao.maps.Map) return res();
+      const s=document.createElement('script');
+      s.src='https://dapi.kakao.com/v2/maps/sdk.js?appkey='+encodeURIComponent(key)+'&libraries=services&autoload=false';
+      s.onerror=()=>rej(new Error('도메인 미등록 또는 네트워크'));
+      s.onload=()=>{ try{ kakao.maps.load(()=>res()); }catch(e){ rej(e); } };
+      document.head.appendChild(s);
+      setTimeout(()=>{ if(!(window.kakao&&window.kakao.maps&&window.kakao.maps.Map)) rej(new Error('시간 초과')); },9000);
+    });
+  }
+  function resetMaps(){
+    if(mainMap&&provider==='leaflet'){ try{ mainMap.m.remove(); }catch(e){} }
+    if(pickMap&&provider==='leaflet'){ try{ pickMap.m.remove(); }catch(e){} }
+    mainMap=pickMap=null; $('#map').innerHTML=''; $('#pickmap').innerHTML='';
+  }
+  async function initProvider(){
+    const key=(state.kakaoKey||'').trim();
+    if(key){
+      try{ await loadKakao(key); provider='kakao'; M=KakaoAdapter; setBadge('kakao'); return; }
+      catch(e){ toast('카카오맵을 불러오지 못했습니다. 키와 등록 도메인을 확인해 주세요.'); }
+    }
+    provider='leaflet'; M=LeafletAdapter; setBadge('osm');
+  }
+  function setBadge(kind){
+    const b=$('#mapbadge'), on=kind==='kakao';
+    b.className=on?'badge kakao':'badge osm';
+    b.textContent=on?'● 카카오맵':'임시 지도 (OpenStreetMap)';
+    $('#mapnotice').style.display=on?'none':'block';
+    $('#kwbox').style.display=on?'':'none';
+    $('#geobtn').style.display=on?'':'none';
+    const st=$('#keystate');
+    st.textContent=on?'카카오맵이 켜져 있습니다.':'지금은 임시 지도를 쓰고 있습니다.';
+    st.style.cssText='margin:10px 0 0;font-size:12.5px;letter-spacing:-.02em;color:'+(on?'#6B5A00':'var(--ink-faint)');
+  }
+
+  document.querySelectorAll('.tab').forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+      const v=b.dataset.view;
+      document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
+      document.body.classList.toggle('mapmode', v==='map');
+      if(v==='map') showMap();
+      if(v==='share') renderPick();
+      window.scrollTo(0,0);
+    };
+  });
+  $('#gomapset').onclick=openSettings;
+
+  function showMap(){
+    if(!M) return;
+    if(!mainMap){ try{ mainMap=M.create('map',SEOUL,'wide',null); }catch(e){ return; } }
+    requestAnimationFrame(()=>M.resize(mainMap));
+    setTimeout(()=>{ M.resize(mainMap); drawPins(); },120);
+    setTimeout(()=>M.resize(mainMap),400);
+  }
+  function drawPins(){
+    if(!mainMap) return;
+    M.clear(mainMap);
+    const pts=[];
+    state.places.filter(p=>p.lat&&p.lng).forEach(p=>{
+      const html='<div class="iw"><b>'+esc(p.name)+'</b>'+
+        (p.rating?'<div class="s">'+'★'.repeat(p.rating)+'</div>':'')+
+        (p.addr?'<div class="a">'+esc(p.addr)+'</div>':'')+
+        (p.memo?'<div style="margin-top:5px">'+esc(p.memo)+'</div>':'')+
+        (p.url?'<a href="'+esc(p.url)+'">카카오맵에서 열기</a>':'')+'</div>';
+      M.marker(mainMap,p.lat,p.lng,cat(p.cat),html);
+      pts.push([p.lat,p.lng]);
+    });
+    M.fit(mainMap,pts);
+  }
+
+  /* ================= 목록 ================= */
+  function renderChips(){
+    const wrap=$('#catchips'); wrap.innerHTML='';
+    [{id:'all',name:'전체'}].concat(CATS).forEach(it=>{
+      const b=el('button','chip'+(filter.cat===it.id?' on':''));
+      b.textContent=it.name;
+      b.onclick=()=>{ filter.cat=it.id; renderChips(); renderList(); };
+      wrap.appendChild(b);
+    });
+  }
+  function visible(){
+    const q=filter.q.trim().toLowerCase();
+    let arr=state.places.filter(p=>{
+      if(filter.cat!=='all'&&p.cat!==filter.cat) return false;
+      if(!q) return true;
+      return [p.name,p.addr,p.memo,(p.tags||[]).join(' '),p.folder].join(' ').toLowerCase().includes(q);
+    });
+    if(filter.sort==='rate') arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else if(filter.sort==='name') arr.sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    else arr.sort((a,b)=>(b.created||0)-(a.created||0));
+    return arr;
+  }
+  function renderList(){
+    const arr=visible();
+    $('#count').textContent=state.places.length+'곳';
+    $('#listcount').textContent=arr.length?arr.length+'곳':'';
+    const box=$('#cards'); box.innerHTML='';
+    if(!state.places.length){
+      box.appendChild(emptyBox('아직 남긴 곳이 없습니다','맛있게 먹은 가게부터 한 곳 남겨 보세요.\n이름과 점수만 있어도 충분합니다.','첫 맛집 남기기'));
+      return;
+    }
+    if(!arr.length){ box.appendChild(emptyBox('찾는 곳이 없습니다','검색어나 종류 필터를 바꿔 보세요.')); return; }
+    arr.forEach(p=>{
+      const c=cat(p.cat), card=el('button','card');
+      card.innerHTML='<span class="stripe" style="background:'+c.c+'"></span><span class="body">'+
+        '<span class="row1"><span class="emoji">'+c.e+'</span><span class="name">'+esc(p.name)+'</span>'+
+        '<span class="stars">'+'★'.repeat(p.rating||0)+'</span></span>'+
+        (p.addr?'<span class="addr">'+esc(p.addr)+'</span>':'')+
+        (p.memo?'<span class="memo">'+esc(p.memo)+'</span>':'')+
+        '<span class="meta"><span class="tag">'+esc(p.folder||'내 맛집')+'</span>'+
+        (p.lat?'<span class="tag plain">📍 위치 있음</span>':'')+
+        (p.visited?'<span class="tag plain">'+esc(p.visited)+'</span>':'')+
+        (p.tags||[]).map(t=>'<span class="tag plain">#'+esc(t)+'</span>').join('')+
+        '</span></span>';
+      card.onclick=()=>openSheet(p.id);
+      box.appendChild(card);
+    });
+  }
+  function emptyBox(title,desc,btn){
+    const d=el('div','empty');
+    d.innerHTML='<div class="mark">🥢</div><h2>'+title+'</h2><p>'+esc(desc).replace(/\n/g,'<br>')+'</p>';
+    if(btn){ const b=el('button','btn'); b.textContent=btn; b.onclick=()=>openSheet(); d.appendChild(b); }
+    return d;
+  }
+
+  /* ================= 입력 ================= */
+  function guessCat(catName, groupCode){
+    const s=catName||'';
+    if(groupCode==='CE7'||/카페|디저트|베이커리|제과|빵/.test(s)) return 'cafe';
+    if(/술집|주점|호프|이자카야|와인|포장마차/.test(s)) return 'bar';
+    if(/일식|초밥|스시|돈까스|라멘|우동|규동/.test(s)) return 'jpn';
+    if(/중식|중국/.test(s)) return 'chn';
+    if(/양식|이탈리|파스타|피자|스테이크|프렌치|멕시칸|햄버거/.test(s)) return 'west';
+    if(/분식|떡볶이|김밥/.test(s)) return 'bun';
+    if(/한식|고기|국밥|찌개|백반|해물|해산물|족발|보쌈|치킨/.test(s)) return 'kor';
+    return 'etc';
+  }
+  function renderCats(){
+    const g=$('#catgrid'); g.innerHTML='';
+    CATS.forEach(c=>{
+      const b=el('button','cat'+(draft.cat===c.id?' on':''));
+      b.innerHTML='<span class="e">'+c.e+'</span>'+c.name;
+      b.onclick=()=>{ draft.cat=c.id; renderCats(); if(draft.lat) setCoord(draft.lat,draft.lng,true); };
+      g.appendChild(b);
+    });
+  }
+  function renderRate(){
+    const g=$('#rate'); g.innerHTML='';
+    for(let i=1;i<=5;i++){
+      const b=el('button', i<=draft.rating?'on':'');
+      b.textContent='★'; b.setAttribute('aria-label',i+'점');
+      b.onclick=()=>{ draft.rating=(draft.rating===i?i-1:i); renderRate(); };
+      g.appendChild(b);
+    }
+  }
+  function setCoord(lat,lng,quiet){
+    try{
+      draft.lat=lat; draft.lng=lng;
+      $('#coord').textContent = lat?('위치 저장됨 · '+lat.toFixed(5)+', '+lng.toFixed(5)):'지도를 눌러 위치를 정하세요.';
+      if(!pickMap) return;
+      M.clear(pickMap);
+      M.marker(pickMap,lat,lng,cat(draft.cat),null);
+      if(!quiet&&provider==='kakao'&&!$('#f-addr').value.trim()) reverseGeocode(lat,lng);
+    }catch(e){ toast('위치를 찍는 중 문제가 생겼습니다. 다시 눌러 주세요.'); }
+  }
+  function ensurePickMap(){
+    if(pickMap||!M) return;
+    try{ pickMap=M.create('pickmap',SEOUL,'mid',(lat,lng)=>setCoord(lat,lng)); }catch(e){}
+    lockScroll($('#pickmap'), $('#sheet'));
+  }
+  function reverseGeocode(lat,lng){
+    if(provider!=='kakao') return;
+    new kakao.maps.services.Geocoder().coord2Address(lng,lat,(res,status)=>{
+      if(status!==kakao.maps.services.Status.OK||!res.length) return;
+      const r=res[0], t=(r.road_address&&r.road_address.address_name)||(r.address&&r.address.address_name);
+      if(t&&!$('#f-addr').value.trim()) $('#f-addr').value=t;
+    });
+  }
+
+  $('#kwbtn').onclick=()=>{
+    const kw=$('#f-kw').value.trim(), box=$('#kwresults'); box.innerHTML='';
+    if(provider!=='kakao'){ toast('가게 검색은 카카오맵 키를 넣어야 켜집니다.'); return; }
+    if(!kw){ toast('찾을 가게 이름을 적어 주세요.'); return; }
+    const opts={};
+    if(draft.lat){ opts.location=new kakao.maps.LatLng(draft.lat,draft.lng); opts.radius=20000; }
+    new kakao.maps.services.Places().keywordSearch(kw,(data,status)=>{
+      if(status===kakao.maps.services.Status.ZERO_RESULT){ toast('일치하는 가게가 없습니다.'); return; }
+      if(status!==kakao.maps.services.Status.OK){ toast('검색에 실패했습니다.'); return; }
+      data.slice(0,8).forEach(it=>{
+        const b=el('button','ritem');
+        b.innerHTML='<div class="rn">'+esc(it.place_name)+'</div>'+
+          '<div class="rc">'+esc((it.category_name||'').split('>').pop().trim())+'</div>'+
+          '<div class="ra">'+esc(it.road_address_name||it.address_name)+'</div>';
+        b.onclick=()=>{
+          const lat=parseFloat(it.y), lng=parseFloat(it.x);
+          $('#f-name').value=it.place_name;
+          $('#f-addr').value=it.road_address_name||it.address_name||'';
+          draft.cat=guessCat(it.category_name,it.category_group_code);
+          draft.url=it.place_url||'';
+          renderCats(); setCoord(lat,lng,true);
+          if(pickMap) M.move(pickMap,lat,lng,'close');
+          box.innerHTML=''; $('#f-kw').value='';
+          toast('불러왔습니다. 점수와 메모만 남기면 끝입니다.');
+        };
+        box.appendChild(b);
+      });
+    },opts);
+  };
+  $('#geobtn').onclick=()=>{
+    const q=$('#f-addr').value.trim(), box=$('#georesults'); box.innerHTML='';
+    if(provider!=='kakao'){ toast('주소 찾기는 카카오맵 키를 넣어야 켜집니다.'); return; }
+    if(!q){ toast('찾을 주소를 적어 주세요.'); return; }
+    new kakao.maps.services.Geocoder().addressSearch(q,(res,status)=>{
+      if(status!==kakao.maps.services.Status.OK||!res.length){ toast('주소를 찾지 못했습니다.'); return; }
+      res.slice(0,5).forEach(it=>{
+        const b=el('button','ritem');
+        b.innerHTML='<div class="rn" style="font-size:13px">'+esc(it.address_name)+'</div>';
+        b.onclick=()=>{
+          const lat=parseFloat(it.y), lng=parseFloat(it.x);
+          $('#f-addr').value=it.address_name;
+          setCoord(lat,lng,true);
+          if(pickMap) M.move(pickMap,lat,lng,'close');
+          box.innerHTML='';
+        };
+        box.appendChild(b);
+      });
+    });
+  };
+  $('#f-kw').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#kwbtn').click(); }});
+  $('#f-addr').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#geobtn').click(); }});
+
+  function openSheet(id){
+    editing=id||null;
+    const p=id?state.places.find(x=>x.id===id):null;
+    draft={rating:p?p.rating:0, cat:p?p.cat:'kor', lat:p?p.lat:null, lng:p?p.lng:null, url:p?(p.url||''):''};
+    $('#sheettitle').textContent=p?'기록 고치기':'맛집 남기기';
+    $('#f-name').value=p?p.name:'';
+    $('#f-addr').value=p?(p.addr||''):'';
+    $('#f-memo').value=p?(p.memo||''):'';
+    $('#f-tags').value=p?(p.tags||[]).join(', '):'';
+    $('#f-date').value=p?(p.visited||''):'';
+    $('#f-kw').value=''; $('#kwresults').innerHTML=''; $('#georesults').innerHTML='';
+    const sel=$('#f-folder'); sel.innerHTML='';
+    FOLDERS.forEach(f=>{ const o=el('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
+    sel.value=p?(p.folder||FOLDERS[0]):FOLDERS[0];
+    $('#delwrap').style.display=p?'block':'none';
+    renderCats(); renderRate();
+    $('#scrim').classList.add('on'); $('#sheet').classList.add('on');
+    setTimeout(()=>{
+      ensurePickMap();
+      if(pickMap){
+        M.resize(pickMap); M.clear(pickMap);
+        if(draft.lat){ M.move(pickMap,draft.lat,draft.lng,'close'); setCoord(draft.lat,draft.lng,true); }
+        else $('#coord').textContent='지도를 눌러 위치를 정하세요.';
+      }
+    },320);
+  }
+  function closeSheet(){ $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); }
+
+  $('#fab').onclick=()=>openSheet();
+  $('#cancel').onclick=closeSheet;
+  $('#scrim').onclick=()=>{ closeSheet(); closeSettings(); closeAccount(); };
+
+  $('#here').onclick=()=>{
+    if(!navigator.geolocation){ toast('이 기기에서는 현재 위치를 쓸 수 없습니다.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ const la=pos.coords.latitude, ln=pos.coords.longitude;
+             setCoord(la,ln); if(pickMap) M.move(pickMap,la,ln,'close'); },
+      ()=>toast('위치 권한이 꺼져 있습니다. 지도를 눌러 직접 찍어 주세요.')
+    );
+  };
+
+  $('#save').onclick=async()=>{
+    const name=$('#f-name').value.trim();
+    if(!name){ toast('가게 이름을 적어 주세요.'); $('#f-name').focus(); return; }
+    const data={ name, cat:draft.cat, rating:draft.rating,
+      addr:$('#f-addr').value.trim(), memo:$('#f-memo').value.trim(),
+      tags:$('#f-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+      visited:$('#f-date').value, folder:$('#f-folder').value,
+      lat:draft.lat, lng:draft.lng, url:draft.url, updated:Date.now() };
+    if(editing){
+      const i=state.places.findIndex(x=>x.id===editing);
+      state.places[i]=Object.assign(state.places[i],data); toast('고쳤습니다.');
+    }else{
+      state.places.unshift(Object.assign({id:uid(),created:Date.now()},data)); toast('저장했습니다.');
+    }
+    await saveLocal(); schedulePush();
+    closeSheet(); renderList(); drawPins();
+  };
+  $('#del').onclick=async()=>{
+    if(!editing) return;
+    if(!confirm('이 기록을 지울까요? 되돌릴 수 없습니다.')) return;
+    state.places=state.places.filter(x=>x.id!==editing);
+    await saveLocal(); schedulePush();
+    closeSheet(); renderList(); drawPins(); toast('지웠습니다.');
+  };
+
+  /* ================= 계정 / 설정 시트 ================= */
+  function openAccount(){ renderAccount(); $('#scrim').classList.add('on'); $('#acctsheet').classList.add('on'); }
+  function closeAccount(){ $('#scrim').classList.remove('on'); $('#acctsheet').classList.remove('on'); }
+  $('#me').onclick=openAccount;
+  $('#acctclose').onclick=closeAccount;
+
+  function openSettings(){
+    $('#f-key').value=state.kakaoKey||'';
+    $('#f-sburl').value=state.sb.url||'';
+    $('#f-sbkey').value=state.sb.key||'';
+    $('#f-naverid').value=state.sb.naver||'naver';
+    $('#sqltext').value=SQL;
+    $('#scrim').classList.add('on'); $('#setsheet').classList.add('on');
+  }
+  function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
+  $('#gear').onclick=openSettings;
+  $('#setclose').onclick=closeSettings;
+
+  $('#keysave').onclick=async()=>{
+    const k=$('#f-key').value.trim();
+    if(!k){ toast('키를 붙여넣어 주세요.'); return; }
+    state.kakaoKey=k; await saveLocal();
+    if(window.kakao&&window.kakao.maps&&window.kakao.maps.Map){ toast('키를 저장했습니다. 새로고침하면 적용됩니다.'); closeSettings(); return; }
+    resetMaps(); await initProvider(); closeSettings(); showMap();
+    if(provider==='kakao') toast('카카오맵으로 바꿨습니다.');
+  };
+  $('#keyclear').onclick=async()=>{
+    state.kakaoKey=''; await saveLocal(); $('#f-key').value='';
+    toast('키를 지웠습니다. 새로고침하면 임시 지도로 돌아갑니다.');
+  };
+  $('#sbsave').onclick=async()=>{
+    const u=$('#f-sburl').value.trim(), k=$('#f-sbkey').value.trim();
+    if(!u||!k){ toast('URL과 anon key를 모두 넣어 주세요.'); return; }
+    if(!/^https?:\/\//.test(u)){ toast('URL은 https:// 로 시작해야 합니다.'); return; }
+    state.sb={url:u, key:k, naver:($('#f-naverid').value.trim()||'naver')};
+    await saveLocal(); refreshAccountUI(); closeSettings();
+    toast('계정 서버를 연결했습니다. 이제 로그인할 수 있습니다.');
+  };
+  $('#sbclear').onclick=async()=>{
+    state.sb={url:'',key:'',naver:'naver'}; await saveLocal();
+    $('#f-sburl').value=''; $('#f-sbkey').value=''; refreshAccountUI();
+    toast('계정 서버 연결을 해제했습니다.');
+  };
+  $('#copysql').onclick=()=>toClipRaw(SQL,'SQL을 복사했습니다.');
+
+  /* ================= 검색/정렬 ================= */
+  $('#q').oninput=e=>{ filter.q=e.target.value; renderList(); };
+  $('#sort').onchange=e=>{ filter.sort=e.target.value; renderList(); };
+  addEventListener('scroll',()=>$('#topbar').classList.toggle('scrolled', scrollY>4));
+
+  /* ================= 공유 ================= */
+  function b64enc(str){
+    const bytes=new TextEncoder().encode(str); let bin='';
+    bytes.forEach(b=>bin+=String.fromCharCode(b));
+    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  }
+  function b64dec(s){
+    s=s.trim().replace(/-/g,'+').replace(/_/g,'/');
+    return new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)));
+  }
+  function renderPick(){
+    const box=$('#picklist'); box.innerHTML='';
+    if(!state.places.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--ink-faint);margin:6px 0 4px">먼저 맛집을 한 곳 저장해 주세요.</p>';
+      return;
+    }
+    state.places.forEach(p=>{
+      const row=el('label','pick'), cb=el('input');
+      cb.type='checkbox'; cb.checked=picked.has(p.id);
+      cb.onchange=()=>{ cb.checked?picked.add(p.id):picked.delete(p.id); };
+      const nm=el('span','nm'); nm.textContent=cat(p.cat).e+' '+p.name;
+      row.appendChild(cb); row.appendChild(nm); box.appendChild(row);
+    });
+  }
+  const selected=()=>state.places.filter(p=>picked.has(p.id));
+  $('#pickall').onclick=()=>{
+    picked=(picked.size===state.places.length)?new Set():new Set(state.places.map(p=>p.id));
+    renderPick();
+  };
+  $('#makecode').onclick=()=>{
+    const arr=selected();
+    if(!arr.length){ toast('공유할 곳을 먼저 골라 주세요.'); return; }
+    $('#code').value='MISIK1:'+b64enc(JSON.stringify({v:1,from:'미식노트',at:Date.now(),places:arr}));
+    $('#codewrap').style.display='block';
+    toast(arr.length+'곳으로 코드를 만들었습니다.');
+  };
+  async function toClipRaw(text,msg){
+    try{ await navigator.clipboard.writeText(text); toast(msg); }
+    catch(e){
+      const t=$('#code'); t.value=text; t.select();
+      try{ document.execCommand('copy'); toast(msg); }
+      catch(_){ toast('복사가 막혀 있습니다. 길게 눌러 복사해 주세요.'); }
+    }
+  }
+  $('#copycode').onclick=()=>toClipRaw($('#code').value,'코드를 복사했습니다.');
+  $('#copytext').onclick=()=>{
+    const arr=selected();
+    const txt='[미식노트] 추천 '+arr.length+'곳\n\n'+arr.map((p,i)=>
+      (i+1)+'. '+p.name+' '+'★'.repeat(p.rating||0)+
+      (p.addr?'\n   '+p.addr:'')+(p.memo?'\n   '+p.memo:'')+
+      (p.url?'\n   '+p.url:'')).join('\n\n');
+    toClipRaw(txt,'글로 복사했습니다.');
+  };
+  $('#importbtn').onclick=async()=>{
+    const raw=$('#incode').value.trim();
+    if(!raw){ toast('코드를 붙여넣어 주세요.'); return; }
+    try{
+      const data=JSON.parse(b64dec(raw.startsWith('MISIK1:')?raw.slice(7):raw));
+      if(!Array.isArray(data.places)) throw 0;
+      let added=0;
+      data.places.forEach(p=>{
+        if(state.places.some(x=>x.id===p.id||(x.name===p.name&&x.addr===p.addr))) return;
+        state.places.unshift(Object.assign({},p,{id:uid(),created:Date.now(),updated:Date.now(),folder:'가보고 싶은 곳'}));
+        added++;
+      });
+      await saveLocal(); schedulePush();
+      renderList(); drawPins(); renderPick(); $('#incode').value='';
+      toast(added?added+'곳을 담았습니다.':'이미 다 가지고 있는 곳입니다.');
+    }catch(e){ toast('코드를 읽지 못했습니다. 전체를 다시 붙여넣어 주세요.'); }
+  };
+
+  /* ================= 백업 ================= */
+  $('#exportfile').onclick=()=>{
+    const blob=new Blob([JSON.stringify({places:state.places},null,2)],{type:'application/json'});
+    const a=el('a'); a.href=URL.createObjectURL(blob); a.download='미식노트-백업.json'; a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  $('#importfile').onclick=()=>$('#filein').click();
+  $('#filein').onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=async()=>{
+      try{
+        const d=JSON.parse(r.result); if(!Array.isArray(d.places)) throw 0;
+        state.places=mergePlaces(d.places, state.places);
+        await saveLocal(); schedulePush();
+        renderList(); drawPins(); renderPick(); toast('백업을 합쳤습니다.');
+      }catch(_){ toast('파일을 읽지 못했습니다.'); }
+    };
+    r.readAsText(f);
+  };
+
+  /* ================= 시작 ================= */
+  (async function init(){
+    await loadLocal();
+    await loadSession();
+    renderChips(); renderList(); refreshAccountUI();
+
+    if(cloudOn()){
+      const back = await Auth.readRedirect();
+      if(back){ hideLogin(); refreshAccountUI(); await syncAfterLogin(); }
+      else if(session){
+        if(await Auth.ok()){ refreshAccountUI(); await syncAfterLogin(); }
+        else { session=null; await saveSession(); refreshAccountUI(); }
+      }
+    }
+    if(!session && !state.skipLogin) showLogin(); else hideLogin();
+
+    await initProvider();
+  })();
+})();
+</script>
