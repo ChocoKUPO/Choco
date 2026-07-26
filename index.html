@@ -130,6 +130,42 @@
   .iw .a{color:#93A099;font-size:11.5px;margin-top:3px}
   .iw a{color:#2F6B57;font-size:11.5px;font-weight:700;display:inline-block;margin-top:6px}
 
+  /* ---- 뷰어 ---- */
+  .vhero{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+  .vhero .vemoji{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
+    font-size:26px;flex:0 0 52px;color:#fff}
+  .vhero .vt{min-width:0;flex:1}
+  .vhero .vname{font-size:21px;font-weight:800;letter-spacing:-.045em;line-height:1.25;
+    word-break:keep-all}
+  .vhero .vstars{margin-top:4px;font-size:15px;color:var(--yuja);letter-spacing:1px}
+  .vhero .vstars .off{color:#DCE2DC}
+  .vmeta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .vrow{display:flex;gap:10px;padding:12px 0;border-top:1px solid var(--line);font-size:14px;letter-spacing:-.02em}
+  .vrow:first-of-type{border-top:0}
+  .vrow .k{flex:0 0 62px;color:var(--ink-faint);font-weight:650;font-size:13px}
+  .vrow .v{flex:1;min-width:0;color:var(--ink);line-height:1.55;word-break:break-word}
+  .vrow .v a{color:var(--celadon);font-weight:650;text-decoration:none}
+  .vmemo{background:var(--surface);border-radius:12px;padding:13px 14px;margin:2px 0 14px;
+    font-size:14px;line-height:1.6;color:var(--ink);letter-spacing:-.02em;white-space:pre-wrap;word-break:break-word}
+  #viewmap{height:170px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#DFE5DF;margin-bottom:6px}
+  .vsub{font-size:12px;font-weight:750;color:var(--ink-soft);letter-spacing:-.02em;margin:16px 0 9px}
+  .vsub .n{color:var(--ink-faint);font-weight:600}
+  .reviews{display:flex;flex-direction:column;gap:8px}
+  .review{display:block;text-align:left;padding:12px 13px;background:var(--surface);border:1px solid var(--line);
+    border-radius:12px;line-height:1.45}
+  .review .rt{font-size:13.5px;font-weight:700;letter-spacing:-.03em;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .review .rm{font-size:12px;color:var(--ink-soft);margin-top:4px;letter-spacing:-.02em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .review .rb{font-size:11px;color:var(--ink-faint);margin-top:5px;display:flex;gap:6px;align-items:center}
+  .review .rb .g{color:#03C75A;font-weight:750}
+  .rvempty{padding:16px;text-align:center;background:var(--surface);border:1px dashed var(--line);
+    border-radius:12px;font-size:12.5px;color:var(--ink-faint);line-height:1.6;letter-spacing:-.02em}
+  .rvbtns{display:flex;gap:8px;margin-top:9px}
+  .rvbtns .btn{flex:1}
+  .btn.nv{background:var(--naver);color:#fff}
+  .rvloading{padding:14px;text-align:center;font-size:12.5px;color:var(--ink-faint)}
+
   .panel{margin:0 20px 12px;background:var(--surface);border-radius:var(--r-card);padding:16px;box-shadow:var(--shadow)}
   .panel h3{margin:0 0 4px;font-size:15px;font-weight:750;letter-spacing:-.035em}
   .panel p{margin:0 0 12px;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em;line-height:1.6}
@@ -417,10 +453,20 @@
   </div>
 </div>
 
+<!-- 맛집 보기 (뷰어) -->
+<div class="sheet" id="viewsheet">
+  <div class="sheet-head">
+    <button id="viewclose">닫기</button>
+    <h2>맛집 보기</h2>
+    <button id="viewedit" style="color:var(--celadon)">수정</button>
+  </div>
+  <div class="form" id="viewbody"></div>
+</div>
+
 <!-- 계정 -->
 <div class="sheet" id="acctsheet">
   <div class="sheet-head">
-    <button id="acctclose">닫기</button>
+    <button id="acctclose">닫기</button>닫기</button>
     <h2>내 계정</h2>
     <span style="width:34px"></span>
   </div>
@@ -1054,7 +1100,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         (p.visited?'<span class="tag plain">'+esc(p.visited)+'</span>':'')+
         (p.tags||[]).map(t=>'<span class="tag plain">#'+esc(t)+'</span>').join('')+
         '</span></span>';
-      card.onclick=()=>openSheet(p.id);
+      card.onclick=()=>openViewer(p.id);
       box.appendChild(card);
     });
   }
@@ -1171,6 +1217,86 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   $('#f-kw').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#kwbtn').click(); }});
   $('#f-addr').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#geobtn').click(); }});
 
+  /* ================= 뷰어 (보기 화면) ================= */
+  let viewMap=null, viewing=null;
+
+  function naverBlogUrl(place){
+    const q = place.name + (place.addr ? ' '+place.addr.split(' ').slice(0,2).join(' ') : '');
+    return 'https://search.naver.com/search.naver?ssc=tab.blog.all&query='+encodeURIComponent(q);
+  }
+  function naverPlaceUrl(place){
+    return 'https://map.naver.com/p/search/'+encodeURIComponent(place.name+' '+(place.addr||''));
+  }
+
+  function openViewer(id){
+    const p=state.places.find(x=>x.id===id); if(!p) return;
+    viewing=id;
+    const c=cat(p.cat);
+    const stars='★'.repeat(p.rating||0)+'<span class="off">'+'★'.repeat(5-(p.rating||0))+'</span>';
+    const tags=(p.tags||[]).map(t=>'<span class="tag plain">#'+esc(t)+'</span>').join('');
+    let rows='';
+    if(p.addr) rows+='<div class="vrow"><span class="k">주소</span><span class="v">'+esc(p.addr)+'</span></div>';
+    if(p.visited) rows+='<div class="vrow"><span class="k">방문일</span><span class="v">'+esc(p.visited)+'</span></div>';
+    rows+='<div class="vrow"><span class="k">종류</span><span class="v">'+c.e+' '+c.name+'</span></div>';
+    if(p.url) rows+='<div class="vrow"><span class="k">지도</span><span class="v"><a href="'+esc(p.url)+'" target="_blank" rel="noopener">카카오맵에서 열기</a></span></div>';
+
+    $('#viewbody').innerHTML =
+      '<div class="vhero">'+
+        '<div class="vemoji" style="background:'+c.c+'">'+c.e+'</div>'+
+        '<div class="vt"><div class="vname">'+esc(p.name)+'</div>'+
+        '<div class="vstars">'+stars+'</div></div>'+
+      '</div>'+
+      '<div class="vmeta"><span class="tag">'+esc(p.folder||'내 맛집')+'</span>'+tags+'</div>'+
+      (p.memo?'<div class="vmemo">'+esc(p.memo)+'</div>':'')+
+      rows+
+      (p.lat?'<div class="vsub">위치</div><div id="viewmap"></div>':'')+
+      '<div class="vsub">리뷰 <span class="n">· 네이버 블로그</span></div>'+
+      '<div class="reviews" id="reviews"></div>';
+
+    $('#scrim').classList.add('on'); $('#viewsheet').classList.add('on');
+
+    if(p.lat){
+      setTimeout(()=>{
+        if(viewMap && provider==='leaflet'){ try{ viewMap.m.remove(); }catch(e){} viewMap=null; }
+        $('#viewmap').innerHTML='';
+        try{
+          viewMap=M.create('viewmap',{lat:p.lat,lng:p.lng},'close',null);
+          lockScroll($('#viewmap'), $('#viewsheet'));
+          M.marker(viewMap,p.lat,p.lng,c,null);
+          M.resize(viewMap); M.move(viewMap,p.lat,p.lng,'close');
+        }catch(e){}
+      },320);
+    }
+    loadReviews(p);
+  }
+  function closeViewer(){ $('#scrim').classList.remove('on'); $('#viewsheet').classList.remove('on'); }
+
+  $('#viewclose').onclick=closeViewer;
+  $('#viewedit').onclick=()=>{ const id=viewing; closeViewer(); setTimeout(()=>openSheet(id),180); };
+
+  function loadReviews(p){
+    const box=$('#reviews'); if(!box) return;
+    const blogSearch=naverBlogUrl(p);
+    const rows =
+      '<a class="review" href="'+esc(blogSearch)+'" target="_blank" rel="noopener">'+
+        '<div class="rt"><span style="color:#03C75A">N</span> 네이버 블로그 후기</div>'+
+        '<div class="rm">'+esc(p.name)+' 후기를 블로그에서 모아 봅니다.</div>'+
+        '<div class="rb"><span class="g">블로그 검색 열기 →</span></div>'+
+      '</a>'+
+      '<a class="review" href="'+esc(naverPlaceUrl(p))+'" target="_blank" rel="noopener">'+
+        '<div class="rt"><span style="color:#03C75A">N</span> 네이버 지도 · 방문자 리뷰</div>'+
+        '<div class="rm">평점과 방문자·블로그 리뷰를 지도에서 봅니다.</div>'+
+        '<div class="rb"><span class="g">네이버 지도 열기 →</span></div>'+
+      '</a>'+
+      (p.url ?
+      '<a class="review" href="'+esc(p.url)+'" target="_blank" rel="noopener">'+
+        '<div class="rt">🗺 카카오맵 상세</div>'+
+        '<div class="rm">저장할 때 연결된 카카오맵 페이지로 이동합니다.</div>'+
+        '<div class="rb"><span style="color:#6B5A00;font-weight:750">카카오맵 열기 →</span></div>'+
+      '</a>' : '');
+    box.innerHTML=rows;
+  }
+
   function openSheet(id){
     editing=id||null;
     const p=id?state.places.find(x=>x.id===id):null;
@@ -1201,7 +1327,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   $('#fab').onclick=()=>openSheet();
   $('#cancel').onclick=closeSheet;
-  $('#scrim').onclick=()=>{ closeSheet(); closeSettings(); closeAccount(); closeAdmin(); };
+  $('#scrim').onclick=()=>{ closeSheet(); closeViewer(); closeSettings(); closeAccount(); closeAdmin(); };
 
   $('#here').onclick=()=>{
     if(!navigator.geolocation){ toast('이 기기에서는 현재 위치를 쓸 수 없습니다.'); return; }
@@ -1324,6 +1450,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     toast('계정 서버 연결을 해제했습니다.');
   };
   $('#copysql').onclick=()=>toClipRaw(SQL,'SQL을 복사했습니다.');
+
 
   /* ================= 검색/정렬 ================= */
   $('#q').oninput=e=>{ filter.q=e.target.value; renderList(); };
