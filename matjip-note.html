@@ -430,7 +430,7 @@
   </div>
 </div>
 
-<!-- 설정 -->
+<!-- 설정 (일반 사용자용) -->
 <div class="sheet" id="setsheet">
   <div class="sheet-head">
     <button id="setclose">닫기</button>
@@ -439,8 +439,48 @@
   </div>
   <div class="form">
     <div class="panel" style="margin:0 0 12px">
-      <h3>카카오맵 JavaScript 키</h3>
-      <p>지도와 가게 검색에 쓰입니다. REST API 키가 아니라 <b>JavaScript 키</b>입니다.</p>
+      <h3>지도</h3>
+      <p id="setmapstate" style="margin:0">지도 상태를 확인하는 중입니다.</p>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>계정</h3>
+      <p id="setacctstate" style="margin:0 0 12px">로그인 상태를 확인하는 중입니다.</p>
+      <div class="btn-row"><button class="btn ghost" id="setgoacct">계정 화면 열기</button></div>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>백업</h3>
+      <p>이 기기의 기록을 파일로 내려받아 둘 수 있습니다.</p>
+      <div class="btn-row"><button class="btn ghost" id="setexport">파일로 내보내기</button></div>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>정보</h3>
+      <p style="margin:0">미식노트 <button id="verbtn" style="font:inherit;color:var(--ink-faint);letter-spacing:-.02em;padding:0">버전 1.0.0</button></p>
+    </div>
+    <div style="height:8px"></div>
+  </div>
+</div>
+
+<!-- 관리자 화면 (API 연결 전용) -->
+<div class="sheet" id="adminsheet">
+  <div class="sheet-head">
+    <button id="adminclose">닫기</button>
+    <h2>🔧 관리자</h2>
+    <span style="width:34px"></span>
+  </div>
+  <div class="form">
+    <div class="panel" style="margin:0 0 12px;border:1px solid #EBD3CD;background:#FFF8F6">
+      <p style="margin:0;color:#8A4B3B;font-size:12.5px;line-height:1.6;letter-spacing:-.02em">
+        이 화면은 앱을 처음 세팅하는 사람만 씁니다. 여기 넣는 값은 <b>이 기기에만</b> 저장되고,
+        일반 사용자에게는 보이지 않습니다. 세팅이 끝나면 다시 열 일이 없습니다.
+      </p>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>1. 카카오맵 JavaScript 키</h3>
+      <p>지도와 상호 검색에 쓰입니다. REST API 키가 아니라 <b>JavaScript 키</b>입니다. 카카오디벨로퍼스의 JavaScript SDK 도메인에 <code>https://chocokupo.github.io</code> 를 등록하세요.</p>
       <div class="field" style="margin:0">
         <input type="text" id="f-key" placeholder="예: 0a1b2c3d4e5f6g7h8i9j" autocapitalize="off" autocomplete="off" spellcheck="false">
       </div>
@@ -452,8 +492,8 @@
     </div>
 
     <div class="panel" style="margin:0 0 12px">
-      <h3>계정 서버 (Supabase)</h3>
-      <p>SNS 로그인과 기기 간 동기화를 맡는 곳입니다. 두 값 모두 공개되어도 되는 값이라 앱에 넣어도 안전합니다.</p>
+      <h3>2. 계정 서버 (Supabase)</h3>
+      <p>SNS 로그인과 기기 간 동기화를 맡습니다. 두 값 모두 공개되어도 되는 값이라 앱에 넣어도 안전합니다.</p>
       <div class="field">
         <label for="f-sburl">프로젝트 URL</label>
         <input type="text" id="f-sburl" placeholder="https://xxxx.supabase.co" autocapitalize="off" spellcheck="false">
@@ -475,11 +515,11 @@
     </div>
 
     <div class="panel" style="margin:0 0 12px">
-      <h3>서버 준비 순서</h3>
+      <h3>3. 서버 준비 순서</h3>
       <ol>
         <li>supabase.com 가입 후 프로젝트 생성 (무료)</li>
         <li>Authentication &gt; Providers에서 <b>Kakao</b>, <b>Google</b> 켜기</li>
-        <li>URL Configuration에 이 앱 주소를 Redirect URL로 추가</li>
+        <li>URL Configuration의 Redirect URLs에 <code>https://chocokupo.github.io/Choco/</code> 추가</li>
         <li>SQL Editor에서 아래 문장 실행</li>
         <li>Settings &gt; API의 URL과 anon key를 위에 붙여넣기</li>
       </ol>
@@ -1161,7 +1201,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   $('#fab').onclick=()=>openSheet();
   $('#cancel').onclick=closeSheet;
-  $('#scrim').onclick=()=>{ closeSheet(); closeSettings(); closeAccount(); };
+  $('#scrim').onclick=()=>{ closeSheet(); closeSettings(); closeAccount(); closeAdmin(); };
 
   $('#here').onclick=()=>{
     if(!navigator.geolocation){ toast('이 기기에서는 현재 위치를 쓸 수 없습니다.'); return; }
@@ -1197,30 +1237,73 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     closeSheet(); renderList(); drawPins(); toast('지웠습니다.');
   };
 
-  /* ================= 계정 / 설정 시트 ================= */
+  /* ================= 계정 시트 ================= */
   function openAccount(){ renderAccount(); $('#scrim').classList.add('on'); $('#acctsheet').classList.add('on'); }
   function closeAccount(){ $('#scrim').classList.remove('on'); $('#acctsheet').classList.remove('on'); }
   $('#me').onclick=openAccount;
   $('#acctclose').onclick=closeAccount;
 
+  /* ================= 일반 설정 시트 ================= */
   function openSettings(){
-    $('#f-key').value=state.kakaoKey||'';
-    $('#f-sburl').value=state.sb.url||'';
-    $('#f-sbkey').value=state.sb.key||'';
-    $('#f-naverid').value=state.sb.naver||'naver';
-    $('#sqltext').value=SQL;
+    // 지도 상태
+    const mapState = provider==='kakao'
+      ? '카카오맵이 켜져 있습니다. 상호 검색을 쓸 수 있습니다.'
+      : '지금은 임시 지도를 쓰고 있습니다. 상호 검색을 쓰려면 관리자 설정이 필요합니다.';
+    $('#setmapstate').textContent = mapState;
+    // 계정 상태
+    let acctState;
+    if(session && session.user) acctState = (session.user.name||session.user.email||'로그인됨')+' · 기기 간 동기화 켜짐';
+    else if(cloudOn()) acctState = '로그인하면 여러 기기에서 같은 기록을 볼 수 있습니다.';
+    else acctState = '지금은 이 기기에만 저장됩니다. 로그인 기능은 관리자 설정 후 켜집니다.';
+    $('#setacctstate').textContent = acctState;
     $('#scrim').classList.add('on'); $('#setsheet').classList.add('on');
   }
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
   $('#gear').onclick=openSettings;
   $('#setclose').onclick=closeSettings;
+  $('#setgoacct').onclick=()=>{ closeSettings(); openAccount(); };
+  $('#setexport').onclick=()=>{ closeSettings(); $('#exportfile').click(); };
+
+  /* 관리자 진입: 톱니 길게 누르기 또는 '버전' 5번 탭 */
+  let gpTimer=null;
+  $('#gear').addEventListener('pointerdown', ()=>{
+    gpTimer=setTimeout(()=>{ closeSettings(); openAdmin(); }, 900);
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>
+    $('#gear').addEventListener(ev, ()=>clearTimeout(gpTimer)));
+  let verTaps=0, verTimer=null;
+  $('#verbtn').onclick=()=>{
+    verTaps++; clearTimeout(verTimer);
+    verTimer=setTimeout(()=>verTaps=0, 1200);
+    if(verTaps>=5){ verTaps=0; closeSettings(); openAdmin(); }
+  };
+
+  /* ================= 관리자 시트 ================= */
+  function openAdmin(){
+    $('#f-key').value=state.kakaoKey||'';
+    $('#f-sburl').value=state.sb.url||'';
+    $('#f-sbkey').value=state.sb.key||'';
+    $('#f-naverid').value=state.sb.naver||'naver';
+    $('#sqltext').value=SQL;
+    setBadge(provider==='kakao'?'kakao':'osm');
+    refreshSbState();
+    $('#scrim').classList.add('on'); $('#adminsheet').classList.add('on');
+  }
+  function closeAdmin(){ $('#scrim').classList.remove('on'); $('#adminsheet').classList.remove('on'); }
+  $('#adminclose').onclick=closeAdmin;
+
+  function refreshSbState(){
+    const st=$('#sbstate');
+    st.style.cssText='margin:10px 0 0;font-size:12.5px;letter-spacing:-.02em;color:'+(cloudOn()?'#1F6E4A':'var(--ink-faint)');
+    st.textContent = cloudOn()?'계정 서버가 연결되어 있습니다.':'아직 연결되지 않았습니다.';
+  }
 
   $('#keysave').onclick=async()=>{
     const k=$('#f-key').value.trim();
     if(!k){ toast('키를 붙여넣어 주세요.'); return; }
     state.kakaoKey=k; await saveLocal();
-    if(window.kakao&&window.kakao.maps&&window.kakao.maps.Map){ toast('키를 저장했습니다. 새로고침하면 적용됩니다.'); closeSettings(); return; }
-    resetMaps(); await initProvider(); closeSettings(); showMap();
+    if(window.kakao&&window.kakao.maps&&window.kakao.maps.Map){ toast('키를 저장했습니다. 새로고침하면 적용됩니다.'); return; }
+    resetMaps(); await initProvider(); showMap();
     if(provider==='kakao') toast('카카오맵으로 바꿨습니다.');
   };
   $('#keyclear').onclick=async()=>{
@@ -1232,12 +1315,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(!u||!k){ toast('URL과 anon key를 모두 넣어 주세요.'); return; }
     if(!/^https?:\/\//.test(u)){ toast('URL은 https:// 로 시작해야 합니다.'); return; }
     state.sb={url:u, key:k, naver:($('#f-naverid').value.trim()||'naver')};
-    await saveLocal(); refreshAccountUI(); closeSettings();
+    await saveLocal(); refreshAccountUI(); refreshSbState();
     toast('계정 서버를 연결했습니다. 이제 로그인할 수 있습니다.');
   };
   $('#sbclear').onclick=async()=>{
     state.sb={url:'',key:'',naver:'naver'}; await saveLocal();
-    $('#f-sburl').value=''; $('#f-sbkey').value=''; refreshAccountUI();
+    $('#f-sburl').value=''; $('#f-sbkey').value=''; refreshAccountUI(); refreshSbState();
     toast('계정 서버 연결을 해제했습니다.');
   };
   $('#copysql').onclick=()=>toClipRaw(SQL,'SQL을 복사했습니다.');

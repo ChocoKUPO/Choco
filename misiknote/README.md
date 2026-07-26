@@ -30,18 +30,19 @@
 
 지도, 로그인, 동기화가 모두 **주소가 있어야** 동작합니다. 무료로는 GitHub Pages가 가장 쉽습니다.
 
-1. github.com에서 저장소를 하나 만듭니다. 이름 예: `misiknote`
+1. github.com에서 저장소를 하나 만듭니다. **이름은 정확히 `Choco`** (대문자 C — 주소의 대소문자가 저장소 이름과 같아야 합니다).
 2. `web/` 안의 파일을 **전부** 저장소에 올립니다. (`.well-known` 폴더도 빠뜨리지 마세요)
 3. 저장소 Settings > Pages > Source를 `main` 브랜치로 지정합니다.
-4. 몇 분 뒤 주소가 생깁니다: `https://내계정.github.io/misiknote/`
+4. 몇 분 뒤 주소가 생깁니다: `https://chocokupo.github.io/Choco/`
 
 이 주소를 아래 세 곳에 등록해야 합니다.
 
 - **카카오디벨로퍼스** → 앱 > 플랫폼 키 > JavaScript SDK 도메인
-  → `https://내계정.github.io` 를 등록
+  → `https://chocokupo.github.io` 를 등록
 - **Supabase** → Authentication > URL Configuration > Redirect URLs
-  → `https://내계정.github.io/misiknote/` 를 등록
-- **앱 안 ⚙ 설정** → 카카오 JavaScript 키, Supabase URL·anon key 입력
+  → `https://chocokupo.github.io/Choco/` 를 등록
+- **앱 안 관리자 화면** → 카카오 JavaScript 키, Supabase URL·anon key 입력
+  (관리자 화면 여는 법: 앱에서 ⚙ 설정을 연 뒤 **톱니를 약 1초 길게 누르거나**, 설정 맨 아래 **"버전 1.0.0"을 5번 연속 탭**)
 
 ---
 
@@ -76,9 +77,9 @@
 npm install -g @bubblewrap/cli
 
 # 2. 내 사이트 주소로 프로젝트 만들기
-bubblewrap init --manifest=https://내계정.github.io/misiknote/manifest.webmanifest
+bubblewrap init --manifest=https://chocokupo.github.io/Choco/manifest.webmanifest
 
-#    묻는 것들: 패키지 이름은 kr.misiknote.app 정도로,
+#    묻는 것들: 패키지 이름은 kr.chocokupo.choco 정도로,
 #    서명키는 새로 만들기(create new)를 고르고 비밀번호를 정합니다.
 #    비밀번호는 반드시 따로 적어 두세요. 잃어버리면 앱 업데이트를 못 합니다.
 
@@ -91,7 +92,7 @@ bubblewrap build
 ```
 
 `android/twa-manifest.json`은 위 `init` 대신 쓸 수 있는 설정 견본입니다.
-`내계정.github.io` 부분을 본인 주소로 바꾼 뒤 프로젝트 폴더에 넣고 `bubblewrap build`만 해도 됩니다.
+이미 `chocokupo.github.io`로 채워져 있으니, 프로젝트 폴더에 넣고 `bubblewrap build`만 해도 됩니다.
 
 ### 주소창 없애기 (중요)
 
@@ -112,7 +113,7 @@ bubblewrap fingerprint list
 
 **지도가 회색으로만 나옵니다**
 카카오 JavaScript SDK 도메인에 주소를 등록했는지 확인하세요. 프로토콜까지 정확히 적어야 합니다
-(`https://내계정.github.io`, 끝에 슬래시 없이).
+(`https://chocokupo.github.io`, 끝에 슬래시 없이).
 
 **로그인 버튼을 누르면 오류가 납니다**
 Supabase의 Redirect URLs에 앱 주소가 정확히 들어가 있는지 확인하세요. 마지막 슬래시까지 같아야 합니다.
