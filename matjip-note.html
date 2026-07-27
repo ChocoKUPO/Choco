@@ -277,6 +277,12 @@
   .acct .who b{display:block;font-size:15px;font-weight:750;letter-spacing:-.035em;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .acct .who span{font-size:12px;color:var(--ink-faint);letter-spacing:-.02em}
+  .codebox{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:30px;font-weight:800;
+    letter-spacing:.18em;text-align:center;padding:16px;margin:2px 0 14px;background:var(--celadon-soft);
+    color:var(--celadon-deep);border-radius:14px;user-select:all}
+  .orline{display:flex;align-items:center;gap:10px;margin:16px 0 10px;
+    font-size:12px;color:var(--ink-faint);letter-spacing:-.02em}
+  .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line)}
 
   .toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;
     transform:translate(-50%,10px);background:var(--ink);color:#fff;padding:11px 17px;border-radius:999px;
@@ -286,21 +292,6 @@
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
-<!-- ================= 로그인 화면 ================= -->
-<div class="login" id="login">
-  <div class="loginbox">
-    <div class="lmark">🥢</div>
-    <h1>미식노트</h1>
-    <p class="sub">맛있었던 곳을 남기고,<br>어느 기기에서 열어도 그대로 꺼내 보세요.</p>
-    <div class="loginwarn" id="loginwarn" style="display:none"></div>
-    <button class="sns k" id="in-kakao"><span class="ic">💬</span>카카오로 시작하기</button>
-    <button class="sns n" id="in-naver"><span class="ic">N</span>네이버로 시작하기</button>
-    <button class="sns g" id="in-google"><span class="ic">G</span>Google로 시작하기</button>
-    <button class="later" id="in-skip">로그인 없이 이 기기에서만 쓰기</button>
-    <p class="loginfoot">로그인하면 저장한 맛집이 계정에 보관됩니다.<br>기기를 바꾸거나 앱을 지워도 그대로 남습니다.</p>
-  </div>
-</div>
-
 <div class="app">
   <header class="topbar" id="topbar">
     <div class="brand">
@@ -308,9 +299,8 @@
       <span class="count" id="count">0곳</span>
       <span class="sp"></span>
       <button class="iconbtn" id="gear" aria-label="설정">⚙</button>
-      <button class="avatar" id="me" aria-label="계정">?</button>
     </div>
-    <p class="tagline"><span class="syncdot off" id="syncdot"></span><span id="synctext">이 기기에만 저장 중</span></p>
+    <p class="tagline">맛있었던 곳을 위치까지 남기고, 통째로 공유합니다.</p>
   </header>
 
   <main>
@@ -463,19 +453,6 @@
   <div class="form" id="viewbody"></div>
 </div>
 
-<!-- 계정 -->
-<div class="sheet" id="acctsheet">
-  <div class="sheet-head">
-    <button id="acctclose">닫기</button>닫기</button>
-    <h2>내 계정</h2>
-    <span style="width:34px"></span>
-  </div>
-  <div class="form">
-    <div class="panel" style="margin:0 0 12px" id="acctpanel"></div>
-    <div style="height:8px"></div>
-  </div>
-</div>
-
 <!-- 설정 (일반 사용자용) -->
 <div class="sheet" id="setsheet">
   <div class="sheet-head">
@@ -487,12 +464,6 @@
     <div class="panel" style="margin:0 0 12px">
       <h3>지도</h3>
       <p id="setmapstate" style="margin:0">지도 상태를 확인하는 중입니다.</p>
-    </div>
-
-    <div class="panel" style="margin:0 0 12px">
-      <h3>계정</h3>
-      <p id="setacctstate" style="margin:0 0 12px">로그인 상태를 확인하는 중입니다.</p>
-      <div class="btn-row"><button class="btn ghost" id="setgoacct">계정 화면 열기</button></div>
     </div>
 
     <div class="panel" style="margin:0 0 12px">
@@ -535,42 +506,6 @@
         <button class="btn kakao" id="keysave">키 적용</button>
       </div>
       <p id="keystate"></p>
-    </div>
-
-    <div class="panel" style="margin:0 0 12px">
-      <h3>2. 계정 서버 (Supabase)</h3>
-      <p>SNS 로그인과 기기 간 동기화를 맡습니다. 두 값 모두 공개되어도 되는 값이라 앱에 넣어도 안전합니다.</p>
-      <div class="field">
-        <label for="f-sburl">프로젝트 URL</label>
-        <input type="text" id="f-sburl" placeholder="https://xxxx.supabase.co" autocapitalize="off" spellcheck="false">
-      </div>
-      <div class="field">
-        <label for="f-sbkey">anon public key</label>
-        <input type="text" id="f-sbkey" placeholder="eyJhbGciOi..." autocapitalize="off" spellcheck="false">
-      </div>
-      <div class="field" style="margin-bottom:0">
-        <label for="f-naverid">네이버 provider 이름</label>
-        <input type="text" id="f-naverid" placeholder="naver" autocapitalize="off" spellcheck="false">
-        <p class="hint">네이버는 Supabase 기본 목록에 없어서 Custom OAuth로 직접 등록해야 합니다. 등록할 때 정한 이름을 여기에 적으세요.</p>
-      </div>
-      <div class="btn-row">
-        <button class="btn ghost" id="sbclear">지우기</button>
-        <button class="btn green" id="sbsave">저장</button>
-      </div>
-      <p id="sbstate"></p>
-    </div>
-
-    <div class="panel" style="margin:0 0 12px">
-      <h3>3. 서버 준비 순서</h3>
-      <ol>
-        <li>supabase.com 가입 후 프로젝트 생성 (무료)</li>
-        <li>Authentication &gt; Providers에서 <b>Kakao</b>, <b>Google</b> 켜기</li>
-        <li>URL Configuration의 Redirect URLs에 <code>https://chocokupo.github.io/Choco/</code> 추가</li>
-        <li>SQL Editor에서 아래 문장 실행</li>
-        <li>Settings &gt; API의 URL과 anon key를 위에 붙여넣기</li>
-      </ol>
-      <textarea class="sql" id="sqltext" readonly></textarea>
-      <div class="btn-row"><button class="btn ghost" id="copysql">SQL 복사</button></div>
     </div>
     <div style="height:8px"></div>
   </div>
@@ -641,27 +576,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const DKEY='misiknote:v4', SKEY='misiknote:session';
+  const DKEY='misiknote:v6';
   const SEOUL={lat:37.5665,lng:126.9780};
-  const SQL = [
-    'create table if not exists public.notes (',
-    '  user_id uuid primary key references auth.users on delete cascade,',
-    "  payload jsonb not null default '{}'::jsonb,",
-    '  updated_at timestamptz not null default now()',
-    ');',
-    'alter table public.notes enable row level security;',
-    'create policy "read own"   on public.notes for select using (auth.uid() = user_id);',
-    'create policy "insert own" on public.notes for insert with check (auth.uid() = user_id);',
-    'create policy "update own" on public.notes for update using (auth.uid() = user_id);'
-  ].join('\n');
 
-  let state = {places:[], kakaoKey:'', sb:{url:'',key:'',naver:'naver'}, owner:'local', skipLogin:false};
-  let session = null;
+  let state = {places:[], kakaoKey:''};
   let filter={q:'',cat:'all',sort:'new'};
   let editing=null, draft={rating:0,cat:'kor',lat:null,lng:null,url:''};
   let picked=new Set();
   let provider='none', M=null, mainMap=null, pickMap=null;
-  let pushTimer=null;
 
   const $ = s => document.querySelector(s);
   const el = (t,c) => { const n=document.createElement(t); if(c) n.className=c; return n; };
@@ -669,7 +591,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const esc = s => (s||'').replace(/[<>&"]/g, m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
   const pinHTML = c => '<div class="pin" style="background:'+c.c+'"><span>'+c.e+'</span></div>';
-  const base = () => (state.sb.url||'').replace(/\/+$/,'');
 
   function toast(msg){
     const t=$('#toast'); t.textContent=msg; t.classList.add('on');
@@ -699,122 +620,18 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     node.addEventListener('focusin',restore,true);
   }
 
-  /* ================= 저장소 ================= */
+  /* ================= 저장소 (이 기기에만) ================= */
   async function loadLocal(){
     try{ const r=await window.storage.get(DKEY); if(r&&r.value) state=Object.assign(state, JSON.parse(r.value)); }catch(e){}
     if(!Array.isArray(state.places)) state.places=[];
-    if(!state.sb) state.sb={url:'',key:'',naver:'naver'};
-    if(!state.sb.naver) state.sb.naver='naver';
     if(typeof state.kakaoKey!=='string') state.kakaoKey='';
-    if(!state.owner) state.owner='local';
   }
   async function saveLocal(){
     try{ await window.storage.set(DKEY, JSON.stringify(state)); }
     catch(e){ toast('이 기기에 저장하지 못했습니다.'); }
   }
-  async function loadSession(){
-    try{ const r=await window.storage.get(SKEY); if(r&&r.value) session=JSON.parse(r.value); }catch(e){}
-  }
-  async function saveSession(){
-    try{
-      if(session) await window.storage.set(SKEY, JSON.stringify(session));
-      else await window.storage.set(SKEY, '');
-    }catch(e){}
-  }
-
-  /* ================= 로그인 / 동기화 ================= */
-  const cloudOn = () => !!(state.sb.url && state.sb.key);
-
-  const Auth = {
-    hdr(extra){
-      const h=Object.assign({'apikey':state.sb.key,'Content-Type':'application/json'}, extra||{});
-      if(session && session.access_token) h['Authorization']='Bearer '+session.access_token;
-      return h;
-    },
-    start(provider){
-      if(!cloudOn()){ toast('먼저 설정에서 계정 서버를 연결해 주세요.'); openSettings(); return; }
-      const back = location.origin + location.pathname;
-      location.href = base()+'/auth/v1/authorize?provider='+encodeURIComponent(provider)+
-                      '&redirect_to='+encodeURIComponent(back);
-    },
-    async readRedirect(){
-      const h = location.hash || '';
-      if(h.indexOf('access_token')<0 && h.indexOf('error')<0) return false;
-      const p = new URLSearchParams(h.replace(/^#/,''));
-      history.replaceState(null,'',location.pathname+location.search);
-      if(p.get('error')){ toast('로그인이 취소되었거나 실패했습니다.'); return false; }
-      const at=p.get('access_token'); if(!at) return false;
-      session={access_token:at, refresh_token:p.get('refresh_token')||'',
-               expires_at:Math.floor(Date.now()/1000)+parseInt(p.get('expires_in')||'3600',10)};
-      try{ await this.loadUser(); }catch(e){ session=null; toast('로그인 정보를 읽지 못했습니다.'); return false; }
-      await saveSession();
-      return true;
-    },
-    async loadUser(){
-      const r=await fetch(base()+'/auth/v1/user',{headers:this.hdr()});
-      if(!r.ok) throw new Error('user');
-      const u=await r.json(), m=u.user_metadata||{};
-      session.user={ id:u.id, email:u.email||'',
-        name:m.name||m.full_name||m.nickname||m.user_name||'',
-        avatar:m.avatar_url||m.picture||m.profile_image||'',
-        provider:(u.app_metadata&&u.app_metadata.provider)||'' };
-    },
-    async refresh(){
-      if(!session||!session.refresh_token) return false;
-      try{
-        const r=await fetch(base()+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
-          headers:{'apikey':state.sb.key,'Content-Type':'application/json'},
-          body:JSON.stringify({refresh_token:session.refresh_token})});
-        if(!r.ok) return false;
-        const d=await r.json();
-        session.access_token=d.access_token;
-        session.refresh_token=d.refresh_token||session.refresh_token;
-        session.expires_at=Math.floor(Date.now()/1000)+(d.expires_in||3600);
-        await saveSession(); return true;
-      }catch(e){ return false; }
-    },
-    async ok(){
-      if(!cloudOn()||!session) return false;
-      if(session.expires_at && session.expires_at-60 < Math.floor(Date.now()/1000)) return await this.refresh();
-      return true;
-    },
-    async out(){
-      try{ await fetch(base()+'/auth/v1/logout',{method:'POST',headers:this.hdr()}); }catch(e){}
-      session=null; await saveSession();
-    }
-  };
-
-  const Cloud = {
-    async pull(){
-      if(!await Auth.ok()) return null;
-      try{
-        const r=await fetch(base()+'/rest/v1/notes?select=payload',{headers:Auth.hdr()});
-        if(!r.ok) return null;
-        const rows=await r.json();
-        return rows[0] && rows[0].payload ? rows[0].payload : {places:[]};
-      }catch(e){ return null; }
-    },
-    async push(){
-      if(!await Auth.ok()) return false;
-      setSync('busy','저장 중');
-      try{
-        const body=[{user_id:session.user.id, payload:{places:state.places}, updated_at:new Date().toISOString()}];
-        const r=await fetch(base()+'/rest/v1/notes',{method:'POST',
-          headers:Auth.hdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
-          body:JSON.stringify(body)});
-        if(!r.ok){ setSync('off','동기화 실패'); return false; }
-        setSync('ok','계정에 저장됨');
-        return true;
-      }catch(e){ setSync('off','연결 안 됨'); return false; }
-    }
-  };
-
-  function schedulePush(){
-    if(!session) return;
-    clearTimeout(pushTimer);
-    setSync('busy','저장 중');
-    pushTimer=setTimeout(()=>Cloud.push(), 1200);
-  }
+  /* 클라우드가 없으므로 저장은 로컬로 끝. 호출부 호환을 위해 빈 함수로 둡니다. */
+  function schedulePush(){}
 
   function mergePlaces(a,b){
     const m=new Map();
@@ -833,99 +650,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     });
     return fin.sort((x,y)=>(y.created||0)-(x.created||0));
   }
-
-  async function syncAfterLogin(){
-    setSync('busy','불러오는 중');
-    const cloud = await Cloud.pull();
-    if(cloud===null){ setSync('off','서버에 닿지 못함'); return; }
-    const cloudPlaces = Array.isArray(cloud.places)?cloud.places:[];
-    const sameOwner = state.owner===session.user.id;
-    if(sameOwner || state.owner==='local'){
-      state.places = mergePlaces(cloudPlaces, state.places);
-    }else{
-      state.places = cloudPlaces;   // 다른 계정으로 바꿔 로그인한 경우
-    }
-    state.owner = session.user.id;
-    await saveLocal();
-    renderList(); drawPins(); renderPick();
-    await Cloud.push();
-  }
-
-  function setSync(kind, text){
-    const d=$('#syncdot'), t=$('#synctext');
-    d.className='syncdot '+(kind||'off');
-    t.textContent=text;
-  }
-  function refreshAccountUI(){
-    const av=$('#me');
-    if(session && session.user){
-      const u=session.user;
-      av.innerHTML = u.avatar ? '<img src="'+esc(u.avatar)+'" alt="">' : esc((u.name||u.email||'나').charAt(0));
-      setSync('ok','계정에 저장됨');
-    }else{
-      av.textContent='?';
-      setSync('off', cloudOn()?'로그인하면 기기 간 동기화':'이 기기에만 저장 중');
-    }
-  }
-  function providerLabel(p){
-    return ({kakao:'카카오',google:'Google',naver:'네이버'})[p] || p || '계정';
-  }
-
-  function renderAccount(){
-    const box=$('#acctpanel');
-    if(session && session.user){
-      const u=session.user;
-      box.innerHTML =
-        '<div class="acct">'+
-          '<div class="big">'+(u.avatar?'<img src="'+esc(u.avatar)+'" alt="">':esc((u.name||u.email||'나').charAt(0)))+'</div>'+
-          '<div class="who"><b>'+esc(u.name||u.email||'로그인됨')+'</b>'+
-          '<span>'+esc(providerLabel(u.provider))+' 로그인'+(u.email?' · '+esc(u.email):'')+'</span></div>'+
-        '</div>'+
-        '<p style="margin:0 0 12px">저장한 '+state.places.length+'곳이 계정에 보관됩니다. 다른 기기에서 같은 계정으로 로그인하면 그대로 나타납니다.</p>'+
-        '<div class="btn-row"><button class="btn ghost" id="syncnow">지금 동기화</button>'+
-        '<button class="btn danger" id="signout">로그아웃</button></div>';
-      $('#syncnow').onclick = async () => {
-        setSync('busy','동기화 중');
-        const c=await Cloud.pull();
-        if(c===null){ toast('서버에 닿지 못했습니다.'); setSync('off','연결 안 됨'); return; }
-        state.places=mergePlaces(Array.isArray(c.places)?c.places:[], state.places);
-        await saveLocal(); renderList(); drawPins(); renderPick(); renderAccount();
-        await Cloud.push(); toast('동기화했습니다.');
-      };
-      $('#signout').onclick = async () => {
-        if(!confirm('로그아웃할까요? 이 기기에 남은 기록은 그대로 두고, 계정 연결만 끊습니다.')) return;
-        await Auth.out(); refreshAccountUI(); renderAccount(); closeAccount(); toast('로그아웃했습니다.');
-      };
-    }else{
-      box.innerHTML =
-        '<h3>아직 로그인하지 않았습니다</h3>'+
-        '<p>지금은 이 기기에만 저장됩니다. 앱을 지우거나 기기를 바꾸면 기록이 사라집니다. '+
-        '로그인하면 지금 있는 '+state.places.length+'곳이 계정으로 옮겨지고, 이후에는 어디서 열어도 같습니다.</p>'+
-        '<button class="sns k" id="a-kakao"><span class="ic">💬</span>카카오로 로그인</button>'+
-        '<button class="sns n" id="a-naver"><span class="ic">N</span>네이버로 로그인</button>'+
-        '<button class="sns g" id="a-google"><span class="ic">G</span>Google로 로그인</button>'+
-        (cloudOn()?'':'<p class="hint" style="margin-top:10px">계정 서버가 아직 연결되지 않았습니다. 설정에서 먼저 연결해 주세요.</p>');
-      $('#a-kakao').onclick=()=>Auth.start('kakao');
-      $('#a-naver').onclick=()=>Auth.start(state.sb.naver||'naver');
-      $('#a-google').onclick=()=>Auth.start('google');
-    }
-  }
-
-  /* 로그인 화면 */
-  function showLogin(){
-    const w=$('#loginwarn');
-    if(!cloudOn()){
-      w.style.display='block';
-      w.innerHTML='계정 서버가 아직 연결되지 않아 SNS 로그인 버튼이 동작하지 않습니다. '+
-                  '아래 <b>로그인 없이 시작</b>으로 먼저 써 보시고, 나중에 설정에서 연결하면 그때 기록이 계정으로 올라갑니다.';
-    }else w.style.display='none';
-    $('#login').classList.add('on');
-  }
-  function hideLogin(){ $('#login').classList.remove('on'); }
-  $('#in-kakao').onclick=()=>Auth.start('kakao');
-  $('#in-naver').onclick=()=>Auth.start(state.sb.naver||'naver');
-  $('#in-google').onclick=()=>Auth.start('google');
-  $('#in-skip').onclick=async()=>{ state.skipLogin=true; await saveLocal(); hideLogin(); };
 
   /* ================= 지도 ================= */
   const ZOOM={kakao:{wide:8,mid:5,close:2}, leaflet:{wide:11,mid:14,close:17}};
@@ -1220,12 +944,25 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   /* ================= 뷰어 (보기 화면) ================= */
   let viewMap=null, viewing=null;
 
+  // 주소에서 '구/동/읍/면' 같은 동네 조각만 뽑아 검색 정확도를 높입니다
+  function areaHint(addr){
+    if(!addr) return '';
+    const toks=addr.split(/\s+/);
+    const picked=toks.filter(t=>/(시|군|구|동|읍|면|로|길)$/.test(t)).slice(0,2);
+    return (picked.length?picked:toks.slice(0,2)).join(' ');
+  }
   function naverBlogUrl(place){
-    const q = place.name + (place.addr ? ' '+place.addr.split(' ').slice(0,2).join(' ') : '');
-    return 'https://search.naver.com/search.naver?ssc=tab.blog.all&query='+encodeURIComponent(q);
+    const q = (place.name+' '+areaHint(place.addr)).trim();
+    return 'https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(q);
   }
   function naverPlaceUrl(place){
-    return 'https://map.naver.com/p/search/'+encodeURIComponent(place.name+' '+(place.addr||''));
+    const q = (place.name+' '+areaHint(place.addr)).trim();
+    // 좌표가 있으면 그 지점을 중심으로 검색해 다른 지역 동명 가게와 섞이지 않게 합니다
+    if(place.lat && place.lng){
+      return 'https://map.naver.com/p/search/'+encodeURIComponent(q)+
+             '?c='+place.lng+','+place.lat+',15,0,0,0,dh';
+    }
+    return 'https://map.naver.com/p/search/'+encodeURIComponent(q);
   }
 
   function openViewer(id){
@@ -1327,7 +1064,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   $('#fab').onclick=()=>openSheet();
   $('#cancel').onclick=closeSheet;
-  $('#scrim').onclick=()=>{ closeSheet(); closeViewer(); closeSettings(); closeAccount(); closeAdmin(); };
+  $('#scrim').onclick=()=>{ closeSheet(); closeViewer(); closeSettings(); closeAdmin(); };
 
   $('#here').onclick=()=>{
     if(!navigator.geolocation){ toast('이 기기에서는 현재 위치를 쓸 수 없습니다.'); return; }
@@ -1363,31 +1100,17 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     closeSheet(); renderList(); drawPins(); toast('지웠습니다.');
   };
 
-  /* ================= 계정 시트 ================= */
-  function openAccount(){ renderAccount(); $('#scrim').classList.add('on'); $('#acctsheet').classList.add('on'); }
-  function closeAccount(){ $('#scrim').classList.remove('on'); $('#acctsheet').classList.remove('on'); }
-  $('#me').onclick=openAccount;
-  $('#acctclose').onclick=closeAccount;
-
   /* ================= 일반 설정 시트 ================= */
   function openSettings(){
-    // 지도 상태
     const mapState = provider==='kakao'
       ? '카카오맵이 켜져 있습니다. 상호 검색을 쓸 수 있습니다.'
       : '지금은 임시 지도를 쓰고 있습니다. 상호 검색을 쓰려면 관리자 설정이 필요합니다.';
     $('#setmapstate').textContent = mapState;
-    // 계정 상태
-    let acctState;
-    if(session && session.user) acctState = (session.user.name||session.user.email||'로그인됨')+' · 기기 간 동기화 켜짐';
-    else if(cloudOn()) acctState = '로그인하면 여러 기기에서 같은 기록을 볼 수 있습니다.';
-    else acctState = '지금은 이 기기에만 저장됩니다. 로그인 기능은 관리자 설정 후 켜집니다.';
-    $('#setacctstate').textContent = acctState;
     $('#scrim').classList.add('on'); $('#setsheet').classList.add('on');
   }
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
   $('#gear').onclick=openSettings;
   $('#setclose').onclick=closeSettings;
-  $('#setgoacct').onclick=()=>{ closeSettings(); openAccount(); };
   $('#setexport').onclick=()=>{ closeSettings(); $('#exportfile').click(); };
 
   /* 관리자 진입: 톱니 길게 누르기 또는 '버전' 5번 탭 */
@@ -1407,22 +1130,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   /* ================= 관리자 시트 ================= */
   function openAdmin(){
     $('#f-key').value=state.kakaoKey||'';
-    $('#f-sburl').value=state.sb.url||'';
-    $('#f-sbkey').value=state.sb.key||'';
-    $('#f-naverid').value=state.sb.naver||'naver';
-    $('#sqltext').value=SQL;
     setBadge(provider==='kakao'?'kakao':'osm');
-    refreshSbState();
     $('#scrim').classList.add('on'); $('#adminsheet').classList.add('on');
   }
   function closeAdmin(){ $('#scrim').classList.remove('on'); $('#adminsheet').classList.remove('on'); }
   $('#adminclose').onclick=closeAdmin;
-
-  function refreshSbState(){
-    const st=$('#sbstate');
-    st.style.cssText='margin:10px 0 0;font-size:12.5px;letter-spacing:-.02em;color:'+(cloudOn()?'#1F6E4A':'var(--ink-faint)');
-    st.textContent = cloudOn()?'계정 서버가 연결되어 있습니다.':'아직 연결되지 않았습니다.';
-  }
 
   $('#keysave').onclick=async()=>{
     const k=$('#f-key').value.trim();
@@ -1436,20 +1148,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     state.kakaoKey=''; await saveLocal(); $('#f-key').value='';
     toast('키를 지웠습니다. 새로고침하면 임시 지도로 돌아갑니다.');
   };
-  $('#sbsave').onclick=async()=>{
-    const u=$('#f-sburl').value.trim(), k=$('#f-sbkey').value.trim();
-    if(!u||!k){ toast('URL과 anon key를 모두 넣어 주세요.'); return; }
-    if(!/^https?:\/\//.test(u)){ toast('URL은 https:// 로 시작해야 합니다.'); return; }
-    state.sb={url:u, key:k, naver:($('#f-naverid').value.trim()||'naver')};
-    await saveLocal(); refreshAccountUI(); refreshSbState();
-    toast('계정 서버를 연결했습니다. 이제 로그인할 수 있습니다.');
-  };
-  $('#sbclear').onclick=async()=>{
-    state.sb={url:'',key:'',naver:'naver'}; await saveLocal();
-    $('#f-sburl').value=''; $('#f-sbkey').value=''; refreshAccountUI(); refreshSbState();
-    toast('계정 서버 연결을 해제했습니다.');
-  };
-  $('#copysql').onclick=()=>toClipRaw(SQL,'SQL을 복사했습니다.');
 
 
   /* ================= 검색/정렬 ================= */
@@ -1552,19 +1250,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   /* ================= 시작 ================= */
   (async function init(){
     await loadLocal();
-    await loadSession();
-    renderChips(); renderList(); refreshAccountUI();
-
-    if(cloudOn()){
-      const back = await Auth.readRedirect();
-      if(back){ hideLogin(); refreshAccountUI(); await syncAfterLogin(); }
-      else if(session){
-        if(await Auth.ok()){ refreshAccountUI(); await syncAfterLogin(); }
-        else { session=null; await saveSession(); refreshAccountUI(); }
-      }
-    }
-    if(!session && !state.skipLogin) showLogin(); else hideLogin();
-
+    renderChips(); renderList();
     await initProvider();
   })();
 })();
