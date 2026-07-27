@@ -462,19 +462,9 @@
   </div>
   <div class="form">
     <div class="panel" style="margin:0 0 12px">
-      <h3>지도</h3>
-      <p id="setmapstate" style="margin:0">지도 상태를 확인하는 중입니다.</p>
-    </div>
-
-    <div class="panel" style="margin:0 0 12px">
-      <h3>백업</h3>
-      <p>이 기기의 기록을 파일로 내려받아 둘 수 있습니다.</p>
-      <div class="btn-row"><button class="btn ghost" id="setexport">파일로 내보내기</button></div>
-    </div>
-
-    <div class="panel" style="margin:0 0 12px">
       <h3>정보</h3>
-      <p style="margin:0">미식노트 <button id="verbtn" style="font:inherit;color:var(--ink-faint);letter-spacing:-.02em;padding:0">버전 1.0.0</button></p>
+      <p style="margin:0 0 6px">미식노트 <button id="verbtn" style="font:inherit;color:var(--ink-faint);letter-spacing:-.02em;padding:0">버전 1.0.0</button></p>
+      <p class="hint" style="margin:0">맛집 백업(내보내기·불러오기)은 공유 탭에 있습니다.</p>
     </div>
     <div style="height:8px"></div>
   </div>
@@ -506,6 +496,11 @@
         <button class="btn kakao" id="keysave">키 적용</button>
       </div>
       <p id="keystate"></p>
+    </div>
+
+    <div class="panel" style="margin:0 0 12px">
+      <h3>2. 지도 상태</h3>
+      <p id="setmapstate" style="margin:0">지도 상태를 확인하는 중입니다.</p>
     </div>
     <div style="height:8px"></div>
   </div>
@@ -1102,16 +1097,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   /* ================= 일반 설정 시트 ================= */
   function openSettings(){
-    const mapState = provider==='kakao'
-      ? '카카오맵이 켜져 있습니다. 상호 검색을 쓸 수 있습니다.'
-      : '지금은 임시 지도를 쓰고 있습니다. 상호 검색을 쓰려면 관리자 설정이 필요합니다.';
-    $('#setmapstate').textContent = mapState;
     $('#scrim').classList.add('on'); $('#setsheet').classList.add('on');
   }
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
   $('#gear').onclick=openSettings;
   $('#setclose').onclick=closeSettings;
-  $('#setexport').onclick=()=>{ closeSettings(); $('#exportfile').click(); };
 
   /* 관리자 진입: 톱니 길게 누르기 또는 '버전' 5번 탭 */
   let gpTimer=null;
@@ -1130,6 +1120,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   /* ================= 관리자 시트 ================= */
   function openAdmin(){
     $('#f-key').value=state.kakaoKey||'';
+    $('#setmapstate').textContent = provider==='kakao'
+      ? '카카오맵이 켜져 있습니다. 상호 검색을 쓸 수 있습니다.'
+      : '지금은 임시 지도를 쓰고 있습니다. 카카오 키를 넣으면 카카오맵으로 바뀝니다.';
     setBadge(provider==='kakao'?'kakao':'osm');
     $('#scrim').classList.add('on'); $('#adminsheet').classList.add('on');
   }
