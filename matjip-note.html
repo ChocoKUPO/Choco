@@ -487,9 +487,10 @@
 
     <div class="panel" style="margin:0 0 12px">
       <h3>1. 카카오맵 JavaScript 키</h3>
-      <p>지도와 상호 검색에 쓰입니다. REST API 키가 아니라 <b>JavaScript 키</b>입니다. 카카오디벨로퍼스의 JavaScript SDK 도메인에 <code>https://chocokupo.github.io</code> 를 등록하세요.</p>
+      <p><b>모든 사용자에게 적용하려면</b> 소스 코드(index.html) 위쪽의 <code>BUILTIN_KAKAO_KEY</code> 한 줄에 키를 넣으세요. 한 번 넣으면 이 앱을 여는 누구나 같은 키로 지도를 씁니다.</p>
+      <p class="hint" style="margin:0 0 12px">아래 칸은 <b>이 기기에서만</b> 임시로 키를 시험할 때 쓰는 자리입니다. 여기 넣은 값은 소스에 심은 키보다 우선하지만, 이 기기에만 저장됩니다.</p>
       <div class="field" style="margin:0">
-        <input type="text" id="f-key" placeholder="예: 0a1b2c3d4e5f6g7h8i9j" autocapitalize="off" autocomplete="off" spellcheck="false">
+        <input type="text" id="f-key" placeholder="이 기기에서만 시험용 (선택)" autocapitalize="off" autocomplete="off" spellcheck="false">
       </div>
       <div class="btn-row">
         <button class="btn ghost" id="keyclear">키 지우기</button>
@@ -573,6 +574,16 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
   const DKEY='misiknote:v6';
   const SEOUL={lat:37.5665,lng:126.9780};
+
+  /* ┌────────────────────────────────────────────────────────────┐
+     │  카카오맵 JavaScript 키 — 여기에 한 번만 넣으면              │
+     │  모든 사용자가 같은 키로 지도를 씁니다.                       │
+     │                                                              │
+     │  카카오디벨로퍼스 > 내 애플리케이션 > 앱 키 > JavaScript 키    │
+     │  그리고 플랫폼 > Web 사이트 도메인에                          │
+     │  https://chocokupo.github.io 등록                            │
+     └────────────────────────────────────────────────────────────┘ */
+  const BUILTIN_KAKAO_KEY = '687ba6b10c3c69d7a59b5883aff60557';   // ← 예: '0a1b2c3d4e5f6g7h8i9j'
 
   let state = {places:[], kakaoKey:''};
   let filter={q:'',cat:'all',sort:'new'};
@@ -719,8 +730,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(pickMap&&provider==='leaflet'){ try{ pickMap.m.remove(); }catch(e){} }
     mainMap=pickMap=null; $('#map').innerHTML=''; $('#pickmap').innerHTML='';
   }
+  const activeKakaoKey = () => (state.kakaoKey||'').trim() || (BUILTIN_KAKAO_KEY||'').trim();
   async function initProvider(){
-    const key=(state.kakaoKey||'').trim();
+    const key=activeKakaoKey();
     if(key){
       try{ await loadKakao(key); provider='kakao'; M=KakaoAdapter; setBadge('kakao'); return; }
       catch(e){ toast('카카오맵을 불러오지 못했습니다. 키와 등록 도메인을 확인해 주세요.'); }
@@ -1120,9 +1132,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   /* ================= 관리자 시트 ================= */
   function openAdmin(){
     $('#f-key').value=state.kakaoKey||'';
+    let src='';
+    if(provider==='kakao'){
+      src = state.kakaoKey.trim() ? ' (이 기기 시험용 키 사용 중)'
+          : (BUILTIN_KAKAO_KEY.trim() ? ' (소스에 심은 공용 키 사용 중)' : '');
+    }
     $('#setmapstate').textContent = provider==='kakao'
-      ? '카카오맵이 켜져 있습니다. 상호 검색을 쓸 수 있습니다.'
-      : '지금은 임시 지도를 쓰고 있습니다. 카카오 키를 넣으면 카카오맵으로 바뀝니다.';
+      ? '카카오맵이 켜져 있습니다. 상호 검색을 쓸 수 있습니다.'+src
+      : '지금은 임시 지도를 쓰고 있습니다. BUILTIN_KAKAO_KEY를 채우면 모두 카카오맵을 씁니다.';
     setBadge(provider==='kakao'?'kakao':'osm');
     $('#scrim').classList.add('on'); $('#adminsheet').classList.add('on');
   }
@@ -1139,7 +1156,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   };
   $('#keyclear').onclick=async()=>{
     state.kakaoKey=''; await saveLocal(); $('#f-key').value='';
-    toast('키를 지웠습니다. 새로고침하면 임시 지도로 돌아갑니다.');
+    toast(BUILTIN_KAKAO_KEY.trim()
+      ? '이 기기 시험용 키를 지웠습니다. 새로고침하면 소스의 공용 키로 돌아갑니다.'
+      : '키를 지웠습니다. 새로고침하면 임시 지도로 돌아갑니다.');
   };
 
 

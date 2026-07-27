@@ -38,8 +38,8 @@
 
 - **카카오디벨로퍼스** → 앱 > 플랫폼 키 > JavaScript SDK 도메인
   → `https://chocokupo.github.io` 를 등록
-- **앱 안 관리자 화면** → 카카오 JavaScript 키(지도용) 입력
-  (관리자 화면 여는 법: 앱에서 ⚙ 설정을 연 뒤 **톱니를 약 1초 길게 누르거나**, 설정 맨 아래 **"버전 1.0.0"을 5번 연속 탭**)
+- **소스 코드 `BUILTIN_KAKAO_KEY`** → 카카오 JavaScript 키를 여기에 한 번 넣으면 모든 사용자가 지도를 씁니다
+  (index.html 위쪽. 카카오디벨로퍼스 > 앱 키 > JavaScript 키. 플랫폼 Web 도메인에 `https://chocokupo.github.io` 등록)
 
 ---
 
