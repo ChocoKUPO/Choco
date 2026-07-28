@@ -192,7 +192,7 @@
 
   .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;
     background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);
-    display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
+    display:grid;grid-template-columns:repeat(3,1fr);padding-bottom:env(safe-area-inset-bottom)}
   .tab{padding:9px 0 11px;display:grid;justify-items:center;gap:3px;color:var(--ink-faint)}
   .tab.on{color:var(--ink)}
   .tab .ic{font-size:17px;line-height:1}
@@ -393,7 +393,6 @@
 
   <nav class="tabbar">
     <button class="tab on" data-view="list"><span class="ic">🍚</span><span class="lb">목록</span></button>
-    <button class="tab" data-view="map"><span class="ic">📍</span><span class="lb">지도</span></button>
     <button class="tab" data-view="share"><span class="ic">🔗</span><span class="lb">공유</span></button>
     <button class="tab" data-view="profile"><span class="ic">👤</span><span class="lb">프로필</span></button>
   </nav>
