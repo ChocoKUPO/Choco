@@ -491,7 +491,7 @@
   <div class="form">
     <div class="panel" style="margin:0 0 12px">
       <h3>정보</h3>
-      <p style="margin:0 0 6px">미식노트 <span style="color:var(--ink-faint);letter-spacing:-.02em">버전 1.0.0</span></p>
+      <p style="margin:0 0 6px">미식노트 <span id="buildtag" style="color:var(--ink-faint);letter-spacing:-.02em">버전 1.0.0</span></p>
       <p class="hint" style="margin:0">맛집 백업(내보내기·불러오기)은 공유 탭에 있습니다.</p>
     </div>
     <div style="height:8px"></div>
@@ -647,6 +647,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
+  const APP_BUILD = 'v25';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1268,27 +1269,33 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     jobs.push({q:kw, group:'FD6'});   // 음식점
 
     let done=0;
-    const collect=(data)=>{
+    const stats={일반:0, 카페:0, 음식점:0};
+    const collect=(data,label)=>{
+      stats[label]+=data.length;
       data.forEach(it=>{ const id=it.id||it.place_name+it.x; if(!seen.has(id)){ seen.add(id); acc.push(it); } });
     };
     const finish=()=>{
       box.innerHTML='';
-      if(!acc.length){ addressFallback(region?region+' '+kw:kw, box); return; }
+      const dbg=el('div');
+      dbg.style.cssText='font-size:10.5px;color:var(--ink-faint);letter-spacing:-.02em;margin:2px 0 6px';
+      dbg.textContent='검색 '+APP_BUILD+' · 일반 '+stats['일반']+' · 카페 '+stats['카페']+' · 음식점 '+stats['음식점'];
+      if(!acc.length){ box.appendChild(dbg); addressFallback(region?region+' '+kw:kw, box); return; }
       // 이름에 검색어가 든 결과를 우선. 하나도 없으면 전체를 보여줌.
       const k=kw.replace(/\s+/g,'').toLowerCase();
       const named=acc.filter(it=>(it.place_name||'').replace(/\s+/g,'').toLowerCase().indexOf(k)>=0);
       const list=rankByName(named.length?named:acc, kw).slice(0,30);
+      box.appendChild(dbg);
       list.forEach(it=>box.appendChild(kwItem(it)));
-      // 이름이 딱 맞는 게 하나도 없었으면, 비슷한 다른 결과도 아래에 안내와 함께
       if(!named.length){
         const note=el('div','rvempty');
         note.style.marginTop='8px';
         note.innerHTML='"'+esc(kw)+'" 이름과 정확히 맞는 곳을 못 찾아, 비슷한 결과를 보여드립니다.';
-        box.insertBefore(note, box.firstChild);
+        box.insertBefore(note, dbg.nextSibling);
       }
     };
     jobs.forEach(job=>{
       const opts={ size:15 };
+      const label = job.group==='CE7' ? '카페' : (job.group==='FD6' ? '음식점' : '일반');
       // 카테고리로 좁힐 때: 위치가 있으면 반경, 없으면 '지역+이름' 키워드로 대체(카카오는 카테고리 필터에 위치를 요구함)
       let q=job.q;
       if(job.group){
@@ -1297,7 +1304,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         else { if(++done===jobs.length) finish(); return; }  // 위치·지역 둘 다 없으면 카테고리 검색은 건너뜀
       }
       svc.keywordSearch(q,(data,status)=>{
-        if(status===kakao.maps.services.Status.OK) collect(data);
+        if(status===kakao.maps.services.Status.OK) collect(data,label);
         if(++done===jobs.length) finish();
       },opts);
     });
@@ -1524,6 +1531,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   /* ================= 일반 설정 시트 ================= */
   function openSettings(){
+    $('#buildtag').textContent='버전 1.0.0 · '+APP_BUILD;
     $('#scrim').classList.add('on'); $('#setsheet').classList.add('on');
   }
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
