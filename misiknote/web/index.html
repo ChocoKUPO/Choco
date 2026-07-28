@@ -1209,10 +1209,17 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       address_name:a.address_name, x:a.x, y:a.y, category_name:'', category_group_code:'', place_url:'' };
   }
 
-  // 입력한 이름과 얼마나 맞는지로 결과를 정렬 (정확히 포함된 것이 위로)
+  // 입력한 이름·종류와 얼마나 맞는지로 결과를 정렬
   function rankByName(list, kw){
     const k=kw.replace(/\s+/g,'').toLowerCase();
-    const score=it=>{
+    // 음식점(FD6)·카페(CE7)를 맨 위로, 그 외 업종(미용실 등)은 아래로
+    const catRank=it=>{
+      const g=it.category_group_code||'';
+      if(g==='FD6'||g==='CE7') return 0;   // 음식점·카페
+      if(!g) return 1;
+      return 2;                            // 미용실·병원·마트 등 딴 업종
+    };
+    const nameScore=it=>{
       const n=(it.place_name||'').replace(/\s+/g,'').toLowerCase();
       if(n===k) return 0;
       if(n.startsWith(k)) return 1;
@@ -1220,7 +1227,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       return 3;
     };
     return list.map((it,i)=>[it,i]).sort((a,b)=>{
-      const d=score(a[0])-score(b[0]); return d!==0?d:a[1]-b[1];
+      const c=catRank(a[0])-catRank(b[0]); if(c!==0) return c;
+      const d=nameScore(a[0])-nameScore(b[0]); if(d!==0) return d;
+      return a[1]-b[1];
     }).map(x=>x[0]);
   }
 
@@ -1234,8 +1243,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
     // 등록 형태가 제각각이라, 여러 조합으로 동시에 찾아 결과를 합칩니다.
     const queries = region ? [kw, region+' '+kw, kw+' '+region] : [kw];
-    const opts={ size:15 };
-    if(draft.lat){ opts.location=new kakao.maps.LatLng(draft.lat,draft.lng); opts.sort=kakao.maps.services.SortBy.DISTANCE; }
+    const opts={ size:15 };   // 정렬은 카카오 기본(정확도순). 거리순은 엉뚱한 근처 가게가 위로 와서 안 씀.
     const svc=new kakao.maps.services.Places();
     const seen=new Set(), acc=[];
     let done=0;
