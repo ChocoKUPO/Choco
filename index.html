@@ -1306,6 +1306,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     }
     return 'https://map.naver.com/p/search/'+encodeURIComponent(q);
   }
+  function kakaoPlaceUrl(place){
+    // 저장 때 받아둔 정확한 카카오 장소 페이지가 있으면 그걸, 없으면 이름+동네로 카카오맵 검색을 엽니다
+    if(place.url) return place.url;
+    const q = (place.name+' '+areaHint(place.addr)).trim();
+    return 'https://map.kakao.com/?q='+encodeURIComponent(q);
+  }
 
   function openViewer(id){
     const p=state.places.find(x=>x.id===id); if(!p) return;
@@ -1367,12 +1373,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         '<div class="rm">평점과 방문자·블로그 리뷰를 지도에서 봅니다.</div>'+
         '<div class="rb"><span class="g">네이버 지도 열기 →</span></div>'+
       '</a>'+
-      (p.url ?
-      '<a class="review" href="'+esc(p.url)+'" target="_blank" rel="noopener">'+
-        '<div class="rt">🗺 카카오맵 상세</div>'+
-        '<div class="rm">저장할 때 연결된 카카오맵 페이지로 이동합니다.</div>'+
+      '<a class="review" href="'+esc(kakaoPlaceUrl(p))+'" target="_blank" rel="noopener">'+
+        '<div class="rt">🗺 카카오맵 '+(p.url?'상세':'검색')+'</div>'+
+        '<div class="rm">'+(p.url?'저장할 때 연결된 카카오맵 페이지로 이동합니다.':esc(p.name)+' 을(를) 카카오맵에서 찾아봅니다.')+'</div>'+
         '<div class="rb"><span style="color:#6B5A00;font-weight:750">카카오맵 열기 →</span></div>'+
-      '</a>' : '');
+      '</a>';
     box.innerHTML=rows;
   }
 
