@@ -244,6 +244,7 @@
   .ritem .rn{font-size:14px;font-weight:700;letter-spacing:-.03em}
   .ritem .rc{font-size:11px;color:var(--celadon);font-weight:650;margin-top:2px}
   .ritem .ra{font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+  .rloading{padding:12px;text-align:center;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em}
   .searchbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:14px}
   .searchbox .lbl{font-size:12px;font-weight:750;color:var(--ink-soft);margin-bottom:7px}
 
@@ -1184,12 +1185,16 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const kw=$('#f-kw').value.trim(), box=$('#kwresults'); box.innerHTML='';
     if(provider!=='kakao'){ toast('가게 검색은 카카오맵 키를 넣어야 켜집니다.'); return; }
     if(!kw){ toast('찾을 가게 이름을 적어 주세요.'); return; }
-    const opts={};
-    if(draft.lat){ opts.location=new kakao.maps.LatLng(draft.lat,draft.lng); opts.radius=20000; }
-    new kakao.maps.services.Places().keywordSearch(kw,(data,status)=>{
-      if(status===kakao.maps.services.Status.ZERO_RESULT){ toast('일치하는 가게가 없습니다.'); return; }
-      if(status!==kakao.maps.services.Status.OK){ toast('검색에 실패했습니다.'); return; }
-      data.slice(0,8).forEach(it=>{
+    // 위치가 있으면 그 지점 기준 '거리순 정렬'만 하고, 지역을 제한하지는 않습니다(전국 검색)
+    const opts={ size:15 };
+    if(draft.lat){ opts.location=new kakao.maps.LatLng(draft.lat,draft.lng); opts.sort=kakao.maps.services.SortBy.DISTANCE; }
+    const svc=new kakao.maps.services.Places();
+    const acc=[];
+    box.innerHTML='<div class="rloading">검색 중…</div>';
+    const render=()=>{
+      box.innerHTML='';
+      if(!acc.length){ toast('일치하는 가게가 없습니다.'); return; }
+      acc.slice(0,30).forEach(it=>{
         const b=el('button','ritem');
         b.innerHTML='<div class="rn">'+esc(it.place_name)+'</div>'+
           '<div class="rc">'+esc((it.category_name||'').split('>').pop().trim())+'</div>'+
@@ -1207,6 +1212,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         };
         box.appendChild(b);
       });
+    };
+    svc.keywordSearch(kw,(data,status,pagination)=>{
+      if(status===kakao.maps.services.Status.ZERO_RESULT){ box.innerHTML=''; toast('일치하는 가게가 없습니다.'); return; }
+      if(status!==kakao.maps.services.Status.OK){ box.innerHTML=''; toast('검색에 실패했습니다.'); return; }
+      acc.push(...data);
+      // 최대 2페이지(30개)까지 모읍니다
+      if(pagination && pagination.hasNextPage && acc.length<30){ pagination.nextPage(); }
+      else render();
     },opts);
   };
   $('#geobtn').onclick=()=>{
