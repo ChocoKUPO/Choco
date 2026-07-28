@@ -489,7 +489,7 @@
   <div class="form">
     <div class="panel" style="margin:0 0 12px">
       <h3>정보</h3>
-      <p style="margin:0 0 6px">미식노트 <button id="verbtn" style="font:inherit;color:var(--ink-faint);letter-spacing:-.02em;padding:0">버전 1.0.0</button></p>
+      <p style="margin:0 0 6px">미식노트 <span style="color:var(--ink-faint);letter-spacing:-.02em">버전 1.0.0</span></p>
       <p class="hint" style="margin:0">맛집 백업(내보내기·불러오기)은 공유 탭에 있습니다.</p>
     </div>
     <div style="height:8px"></div>
@@ -1398,20 +1398,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
   $('#gear').onclick=openSettings;
   $('#setclose').onclick=closeSettings;
-
-  /* 관리자 진입: 톱니 길게 누르기 또는 '버전' 5번 탭 */
-  let gpTimer=null;
-  $('#gear').addEventListener('pointerdown', ()=>{
-    gpTimer=setTimeout(()=>{ closeSettings(); openAdmin(); }, 900);
-  });
-  ['pointerup','pointerleave','pointercancel'].forEach(ev=>
-    $('#gear').addEventListener(ev, ()=>clearTimeout(gpTimer)));
-  let verTaps=0, verTimer=null;
-  $('#verbtn').onclick=()=>{
-    verTaps++; clearTimeout(verTimer);
-    verTimer=setTimeout(()=>verTaps=0, 1200);
-    if(verTaps>=5){ verTaps=0; closeSettings(); openAdmin(); }
-  };
 
   /* ================= 관리자 시트 ================= */
   function openAdmin(){
