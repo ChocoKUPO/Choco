@@ -413,10 +413,11 @@
     <div class="searchbox" id="kwbox">
       <div class="lbl">가게 찾아서 채우기</div>
       <div class="inline">
-        <input type="text" id="f-kw" placeholder="가게 이름 또는 주소">
+        <input type="text" id="f-region" placeholder="지역(예: 포항)" style="flex:0 0 34%">
+        <input type="text" id="f-kw" placeholder="가게 이름">
         <button class="btn kakao sm" id="kwbtn">검색</button>
       </div>
-      <p class="hint">가게 이름(예: 을지로 골목집)이 가장 잘 찾아집니다. 주소도 되지만, 도로명만 있으면 <b>시·구</b>를 붙이세요(예: 포항시 북구 양학천로).</p>
+      <p class="hint">지역 + 가게 이름으로 찾으면 가장 정확합니다(예: 포항 · 인레브). 지역은 한 번 넣으면 기억됩니다. 이름이 안 나오면 주소를 넣어도 됩니다.</p>
       <div class="results" id="kwresults"></div>
     </div>
     <div class="field">
@@ -667,7 +668,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const BUILTIN_SB_URL = 'https://dfuihsljqfbwjmmdgjsl.supabase.co';   // ← 예: 'https://abcdefgh.supabase.co'
   const BUILTIN_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmdWloc2xqcWZid2ptbWRnanNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDIyNjYsImV4cCI6MjEwMDQxODI2Nn0.BAdqONR0QK2LvkZW64tD1OcpYwb8LSjt_OJMuhoo0C4';   // ← 예: 'eyJhbGci...'
 
-  let state = {places:[], kakaoKey:'', sb:{url:'',key:''}, owner:'local'};
+  let state = {places:[], kakaoKey:'', sb:{url:'',key:''}, owner:'local', region:''};
   let session = null;
   let filter={q:'',cat:'all',sort:'new'};
   let editing=null, draft={rating:0,cat:'kor',lat:null,lng:null,url:''};
@@ -721,6 +722,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(!state.sb) state.sb={url:'',key:''};
     if(typeof state.kakaoKey!=='string') state.kakaoKey='';
     if(!state.owner) state.owner='local';
+    if(typeof state.region!=='string') state.region='';
   }
   async function saveLocal(){
     try{ await window.storage.set(DKEY, JSON.stringify(state)); }
@@ -1207,10 +1209,30 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       address_name:a.address_name, x:a.x, y:a.y, category_name:'', category_group_code:'', place_url:'' };
   }
 
+  // 입력한 이름과 얼마나 맞는지로 결과를 정렬 (정확히 포함된 것이 위로)
+  function rankByName(list, kw){
+    const k=kw.replace(/\s+/g,'').toLowerCase();
+    const score=it=>{
+      const n=(it.place_name||'').replace(/\s+/g,'').toLowerCase();
+      if(n===k) return 0;
+      if(n.startsWith(k)) return 1;
+      if(n.indexOf(k)>=0) return 2;
+      return 3;
+    };
+    return list.map((it,i)=>[it,i]).sort((a,b)=>{
+      const d=score(a[0])-score(b[0]); return d!==0?d:a[1]-b[1];
+    }).map(x=>x[0]);
+  }
+
   function runSearch(){
-    const kw=$('#f-kw').value.trim(), box=$('#kwresults'); box.innerHTML='';
+    let kw=$('#f-kw').value.trim();
+    const region=$('#f-region').value.trim();
+    const box=$('#kwresults'); box.innerHTML='';
     if(provider!=='kakao'){ toast('검색은 카카오맵 키를 넣어야 켜집니다.'); return; }
-    if(!kw){ toast('가게 이름이나 주소를 적어 주세요.'); return; }
+    if(!kw){ toast('가게 이름을 적어 주세요.'); return; }
+    // 지역을 기억해 두고, 검색어 앞에 붙여 정확도를 높입니다
+    if(region && region!==state.region){ state.region=region; saveLocal(); }
+    const query = region ? (region+' '+kw) : kw;
     const opts={ size:15 };
     if(draft.lat){ opts.location=new kakao.maps.LatLng(draft.lat,draft.lng); opts.sort=kakao.maps.services.SortBy.DISTANCE; }
     const svc=new kakao.maps.services.Places();
@@ -1218,17 +1240,16 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     box.innerHTML='<div class="rloading">검색 중…</div>';
     const render=()=>{
       box.innerHTML='';
-      if(!acc.length){ addressFallback(kw, box); return; }
-      acc.slice(0,30).forEach(it=>box.appendChild(kwItem(it)));
+      if(!acc.length){ addressFallback(query, box); return; }
+      rankByName(acc, kw).slice(0,30).forEach(it=>box.appendChild(kwItem(it)));
     };
-    svc.keywordSearch(kw,(data,status,pagination)=>{
+    svc.keywordSearch(query,(data,status,pagination)=>{
       if(status===kakao.maps.services.Status.OK){
         acc.push(...data);
         if(pagination && pagination.hasNextPage && acc.length<30){ pagination.nextPage(); }
         else render();
       }else{
-        // 키워드로 못 찾으면 주소 검색으로 한 번 더
-        addressFallback(kw, box);
+        addressFallback(query, box);
       }
     },opts);
   }
@@ -1281,6 +1302,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     });
   };
   $('#f-kw').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#kwbtn').click(); }});
+  $('#f-region').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#f-kw').focus(); }});
   $('#f-addr').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#geobtn').click(); }});
 
   /* ================= 뷰어 (보기 화면) ================= */
@@ -1391,7 +1413,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     $('#f-memo').value=p?(p.memo||''):'';
     $('#f-tags').value=p?(p.tags||[]).join(', '):'';
     $('#f-date').value=p?(p.visited||''):'';
-    $('#f-kw').value=''; $('#kwresults').innerHTML=''; $('#georesults').innerHTML='';
+    $('#f-kw').value=''; $('#f-region').value=state.region||''; $('#kwresults').innerHTML=''; $('#georesults').innerHTML='';
     const sel=$('#f-folder'); sel.innerHTML='';
     FOLDERS.forEach(f=>{ const o=el('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
     sel.value=p?(p.folder||FOLDERS[0]):FOLDERS[0];
