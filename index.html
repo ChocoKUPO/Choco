@@ -528,13 +528,14 @@
 
     <div class="panel" style="margin:0 0 12px">
       <h3>2. 로그인 서버 (Supabase)</h3>
-      <p>카카오 로그인과 사용자별 데이터 저장을 맡습니다. 두 값 모두 공개되어도 되는 값입니다.</p>
+      <p><b>모든 사용자에게 적용하려면</b> 소스 코드(index.html) 위쪽의 <code>BUILTIN_SB_URL</code>과 <code>BUILTIN_SB_KEY</code> 두 줄에 값을 넣으세요. 한 번 넣으면 이 앱을 여는 누구나 카카오 로그인을 씁니다.</p>
+      <p class="hint" style="margin:0 0 12px">아래 칸은 <b>이 기기에서만</b> 임시로 시험할 때 쓰는 자리입니다. 여기 넣은 값은 소스에 심은 값보다 우선하지만, 이 기기에만 저장됩니다.</p>
       <div class="field">
-        <label for="f-sburl">프로젝트 URL</label>
+        <label for="f-sburl">프로젝트 URL (이 기기 시험용)</label>
         <input type="text" id="f-sburl" placeholder="https://xxxx.supabase.co" autocapitalize="off" spellcheck="false">
       </div>
       <div class="field" style="margin-bottom:0">
-        <label for="f-sbkey">anon public key</label>
+        <label for="f-sbkey">anon public key (이 기기 시험용)</label>
         <input type="text" id="f-sbkey" placeholder="eyJhbGciOi..." autocapitalize="off" spellcheck="false">
       </div>
       <div class="btn-row">
@@ -652,7 +653,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
      │  그리고 플랫폼 > Web 사이트 도메인에                          │
      │  https://chocokupo.github.io 등록                            │
      └────────────────────────────────────────────────────────────┘ */
-  const BUILTIN_KAKAO_KEY = '';   // ← 예: '0a1b2c3d4e5f6g7h8i9j'
+  const BUILTIN_KAKAO_KEY = '687ba6b10c3c69d7a59b5883aff60557';   // ← 예: '0a1b2c3d4e5f6g7h8i9j'
+
+  /* ┌────────────────────────────────────────────────────────────┐
+     │  로그인 서버(Supabase) — 여기에 한 번만 넣으면                │
+     │  모든 사용자가 카카오 로그인을 쓸 수 있습니다.                 │
+     │                                                              │
+     │  Supabase > Settings > API 에서                              │
+     │   · Project URL  → BUILTIN_SB_URL                            │
+     │   · anon public key → BUILTIN_SB_KEY                         │
+     │  (service_role 키는 넣지 마세요. anon public 키만!)           │
+     └────────────────────────────────────────────────────────────┘ */
+  const BUILTIN_SB_URL = 'https://dfuihsljqfbwjmmdgjsl.supabase.co';   // ← 예: 'https://abcdefgh.supabase.co'
+  const BUILTIN_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmdWloc2xqcWZid2ptbWRnanNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDIyNjYsImV4cCI6MjEwMDQxODI2Nn0.BAdqONR0QK2LvkZW64tD1OcpYwb8LSjt_OJMuhoo0C4';   // ← 예: 'eyJhbGci...'
 
   let state = {places:[], kakaoKey:'', sb:{url:'',key:''}, owner:'local'};
   let session = null;
@@ -668,7 +681,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const esc = s => (s||'').replace(/[<>&"]/g, m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
   const pinHTML = c => '<div class="pin" style="background:'+c.c+'"><span>'+c.e+'</span></div>';
-  const sbBase = () => (state.sb.url||'').replace(/\/+$/,'');
+  // 기기에 넣은 값 → 없으면 소스에 심은 값
+  const sbURL = () => ((state.sb.url||'').trim() || (BUILTIN_SB_URL||'').trim());
+  const sbKey = () => ((state.sb.key||'').trim() || (BUILTIN_SB_KEY||'').trim());
+  const sbBase = () => sbURL().replace(/\/+$/,'');
 
   function toast(msg){
     const t=$('#toast'); t.textContent=msg; t.classList.add('on');
@@ -739,11 +755,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   }
 
   /* ================= 로그인 / 클라우드 (Supabase + 카카오) ================= */
-  const cloudOn = () => !!(state.sb.url && state.sb.key);
+  const cloudOn = () => !!(sbURL() && sbKey());
 
   const Auth = {
     hdr(extra){
-      const h=Object.assign({'apikey':state.sb.key,'Content-Type':'application/json'}, extra||{});
+      const h=Object.assign({'apikey':sbKey(),'Content-Type':'application/json'}, extra||{});
       if(session && session.access_token) h['Authorization']='Bearer '+session.access_token;
       return h;
     },
@@ -777,7 +793,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       if(!session||!session.refresh_token) return false;
       try{
         const r=await fetch(sbBase()+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
-          headers:{'apikey':state.sb.key,'Content-Type':'application/json'},
+          headers:{'apikey':sbKey(),'Content-Type':'application/json'},
           body:JSON.stringify({refresh_token:session.refresh_token})});
         if(!r.ok) return false;
         const d=await r.json();
@@ -1422,7 +1438,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function refreshSbState(){
     const st=$('#sbstate');
     st.style.cssText='margin:10px 0 0;font-size:12.5px;letter-spacing:-.02em;color:'+(cloudOn()?'#1F6E4A':'var(--ink-faint)');
-    st.textContent = cloudOn()?'로그인 서버가 연결되어 있습니다.':'아직 연결되지 않았습니다.';
+    if(!cloudOn()){ st.textContent='아직 연결되지 않았습니다. BUILTIN_SB_URL·BUILTIN_SB_KEY를 채우면 모두 로그인할 수 있습니다.'; return; }
+    const src = (state.sb.url.trim()||state.sb.key.trim()) ? ' (이 기기 시험용 값 사용 중)'
+              : ((BUILTIN_SB_URL.trim()&&BUILTIN_SB_KEY.trim()) ? ' (소스에 심은 공용 값 사용 중)' : '');
+    st.textContent = '로그인 서버가 연결되어 있습니다.'+src;
   }
 
   $('#keysave').onclick=async()=>{
