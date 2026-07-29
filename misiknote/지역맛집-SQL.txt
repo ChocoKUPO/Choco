@@ -1,0 +1,28 @@
+create table if not exists public.notes (
+  user_id uuid primary key references auth.users on delete cascade,
+  updated_at timestamptz not null default now()
+);
+alter table public.notes enable row level security;
+create policy "read own"   on public.notes for select using (auth.uid() = user_id);
+create policy "insert own" on public.notes for insert with check (auth.uid() = user_id);
+create policy "update own" on public.notes for update using (auth.uid() = user_id);
+
+-- 지역맛집(공개): 누구나 읽고, 본인 것만 쓰기
+create table if not exists public.spots (
+  id text primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  name text not null,
+  addr text,
+  cat text,
+  rating int,
+  lat double precision,
+  lng double precision,
+  url text,
+  by_name text,
+  updated_at timestamptz not null default now()
+);
+alter table public.spots enable row level security;
+create policy "spots read all"    on public.spots for select using (true);
+create policy "spots insert own"  on public.spots for insert with check (auth.uid() = user_id);
+create policy "spots update own"  on public.spots for update using (auth.uid() = user_id);
+create policy "spots delete own"  on public.spots for delete using (auth.uid() = user_id);
