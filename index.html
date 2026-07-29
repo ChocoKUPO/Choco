@@ -94,6 +94,11 @@
     background:var(--celadon-soft);color:var(--celadon-deep);letter-spacing:-.02em}
   .tag.plain{background:#F1F3F0;color:var(--ink-faint)}
   .tag.pub{background:#E3F0E8;color:#1F6E4A}
+  .pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 0 6px}
+  .pgbtn{font-size:13px;font-weight:700;letter-spacing:-.02em;padding:8px 14px;border-radius:10px;
+    background:var(--surface);border:1px solid var(--line);color:var(--celadon-deep)}
+  .pgbtn:disabled{opacity:.35}
+  .pginfo{font-size:13px;font-weight:750;color:var(--ink-soft);letter-spacing:-.02em;min-width:52px;text-align:center}
 
   .empty{padding:64px 32px;text-align:center}
   .empty .mark{font-size:34px;opacity:.75}
@@ -694,7 +699,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v36';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v37';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1325,7 +1330,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     [{id:'all',name:'전체'}].concat(CATS).forEach(it=>{
       const b=el('button','chip'+(filter.cat===it.id?' on':''));
       b.textContent=it.name;
-      b.onclick=()=>{ filter.cat=it.id; renderChips(); renderList(); };
+      b.onclick=()=>{ filter.cat=it.id; listPage=1; renderChips(); renderList(); };
       wrap.appendChild(b);
     });
   }
@@ -1341,6 +1346,8 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     else arr.sort((a,b)=>(b.created||0)-(a.created||0));
     return arr;
   }
+  const PAGE_SIZE=10;
+  let listPage=1;
   function renderList(){
     const arr=visible();
     $('#count').textContent=state.places.length+'곳';
@@ -1351,7 +1358,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       return;
     }
     if(!arr.length){ box.appendChild(emptyBox('찾는 곳이 없습니다','검색어나 종류 필터를 바꿔 보세요.')); return; }
-    arr.forEach(p=>{
+
+    const pages=Math.max(1, Math.ceil(arr.length/PAGE_SIZE));
+    if(listPage>pages) listPage=pages;
+    if(listPage<1) listPage=1;
+    const start=(listPage-1)*PAGE_SIZE;
+    arr.slice(start, start+PAGE_SIZE).forEach(p=>{
       const c=cat(p.cat), card=el('button','card');
       card.innerHTML='<span class="stripe" style="background:'+c.c+'"></span><span class="body">'+
         '<span class="row1"><span class="emoji">'+c.e+'</span><span class="name">'+esc(p.name)+'</span>'+
@@ -1367,6 +1379,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       card.onclick=()=>openViewer(p.id);
       box.appendChild(card);
     });
+
+    if(pages>1){
+      const nav=el('div','pager');
+      const prev=el('button','pgbtn'); prev.textContent='‹ 이전';
+      prev.disabled=(listPage===1);
+      prev.onclick=()=>{ listPage--; renderList(); window.scrollTo(0,0); };
+      const info=el('span','pginfo'); info.textContent=listPage+' / '+pages;
+      const next=el('button','pgbtn'); next.textContent='다음 ›';
+      next.disabled=(listPage===pages);
+      next.onclick=()=>{ listPage++; renderList(); window.scrollTo(0,0); };
+      nav.appendChild(prev); nav.appendChild(info); nav.appendChild(next);
+      box.appendChild(nav);
+    }
   }
   function emptyBox(title,desc,btn){
     const d=el('div','empty');
@@ -1886,8 +1911,8 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
 
   /* ================= 검색/정렬 ================= */
-  $('#q').oninput=e=>{ filter.q=e.target.value; renderList(); };
-  $('#sort').onchange=e=>{ filter.sort=e.target.value; renderList(); };
+  $('#q').oninput=e=>{ filter.q=e.target.value; listPage=1; renderList(); };
+  $('#sort').onchange=e=>{ filter.sort=e.target.value; listPage=1; renderList(); };
   addEventListener('scroll',()=>$('#topbar').classList.toggle('scrolled', scrollY>4));
 
   /* ================= 공유 ================= */
