@@ -694,7 +694,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v35';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v36';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1518,35 +1518,40 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     };
     const finish=()=>{
       box.innerHTML='';
+      // 지역을 넣었으면, 주소에 그 지역이 든 결과만 남깁니다 (다른 지역 제외)
+      const rN=region.replace(/\s+/g,'');
+      const inRegion=a=>!rN || (a||'').replace(/\s+/g,'').indexOf(rN)>=0;
+      const acc2=acc.filter(it=>inRegion(it.road_address_name)||inRegion(it.address_name));
+      const addr2=addrAcc.filter(a=>inRegion(a.address_name)||inRegion(a.road_address&&a.road_address.address_name));
       const dbg=el('div');
       dbg.style.cssText='font-size:10.5px;color:var(--ink-faint);letter-spacing:-.02em;margin:2px 0 6px';
-      dbg.textContent='검색 '+APP_BUILD+' · 일반 '+stats['일반']+' · 카페 '+stats['카페']+' · 음식점 '+stats['음식점']+' · 주소 '+addrAcc.length;
+      dbg.textContent='검색 '+APP_BUILD+' · 일반 '+stats['일반']+' · 카페 '+stats['카페']+' · 음식점 '+stats['음식점']+' · 주소 '+addrAcc.length+(rN?(' · '+region+' 안 '+acc2.length):'');
       box.appendChild(dbg);
 
       const k=kw.replace(/\s+/g,'').toLowerCase();
-      const named=acc.filter(it=>(it.place_name||'').replace(/\s+/g,'').toLowerCase().indexOf(k)>=0);
+      const named=acc2.filter(it=>(it.place_name||'').replace(/\s+/g,'').toLowerCase().indexOf(k)>=0);
 
       // 이름이 안 맞는데 주소가 잡혔으면: '이 주소로 바로 등록'을 맨 위에
-      if(!named.length && addrAcc.length){
+      if(!named.length && addr2.length){
         const h=el('div');
         h.style.cssText='font-size:12px;font-weight:750;color:var(--ink-soft);letter-spacing:-.02em;margin:4px 0 6px';
         h.textContent='📍 이 주소로 바로 등록';
         box.appendChild(h);
-        addrAcc.slice(0,5).forEach(a=>box.appendChild(kwItem(addrToItem(a))));
+        addr2.slice(0,5).forEach(a=>box.appendChild(kwItem(addrToItem(a))));
         const tip=el('p','hint'); tip.style.margin='6px 0 10px';
         tip.textContent='주소를 누르면 위치가 채워집니다. 가게 이름은 아래 칸에 직접 적어 주세요.';
         box.appendChild(tip);
       }
 
-      if(!acc.length && !addrAcc.length){ addressFallback(region?region+' '+kw:kw, box); return; }
+      if(!acc2.length && !addr2.length){ addressFallback(region?region+' '+kw:kw, box); return; }
 
-      if(acc.length){
-        const list=rankByName(named.length?named:acc, kw).slice(0,30);
+      if(acc2.length){
+        const list=rankByName(named.length?named:acc2, kw).slice(0,30);
         if(!named.length){
           const note=el('div','rvempty');
           note.style.margin='4px 0 8px';
           const openq=encodeURIComponent(((region||'')+' '+kw).trim());
-          note.innerHTML='"'+esc(kw)+'" 이름과 맞는 가게는 카카오 검색에 없습니다. '+
+          note.innerHTML='"'+esc(kw)+'" 이름과 맞는 가게는 '+(rN?esc(region)+' 안 ':'')+'카카오 검색에 없습니다. '+
             '<a href="https://map.kakao.com/?q='+openq+'" target="_blank" rel="noopener" style="color:var(--celadon);font-weight:750">카카오맵에서 확인 →</a><br>'+
             '아래는 비슷한 다른 결과입니다.';
           box.appendChild(note);
