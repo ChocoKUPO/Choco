@@ -699,7 +699,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v37';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v38';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -946,7 +946,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         const row=[{ id:session.user.id+':'+p.id, user_id:session.user.id,
           name:p.name, addr:p.addr||'', cat:p.cat||'etc', rating:p.rating||0,
           lat:p.lat, lng:p.lng, url:p.url||'',
-          by_name:(session.user.name||'익명'), updated_at:new Date().toISOString() }];
+          by_name:'', updated_at:new Date().toISOString() }];
         await fetch(sbBase()+'/rest/v1/spots',{method:'POST',
           headers:Auth.hdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
           body:JSON.stringify(row)});
@@ -1133,7 +1133,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
           '<div class="nb-stars">'+stars+'</div>'+
           (s.addr?'<div class="nb-addr">'+esc(s.addr)+'</div>':'')+
           '<div class="nb-meta"><span class="nb-dist">'+s.dist.toFixed(s.dist<10?1:0)+'km</span>'+
-            (s.by_name?'<span class="nb-by">· '+esc(s.by_name)+(mine&&s.user_id===mine?' (나)':'')+'</span>':'')+
+            (mine&&s.user_id===mine?'<span class="nb-by">· 내 맛집</span>':'')+
           '</div>'+
         '</div>';
       card.onclick=()=>window.open(kakaoPlaceUrl({name:s.name, addr:s.addr, url:s.url, lat:s.lat, lng:s.lng}),'_blank');
