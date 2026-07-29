@@ -92,6 +92,7 @@
   .tag{font-size:11px;font-weight:650;padding:3px 8px;border-radius:6px;
     background:var(--celadon-soft);color:var(--celadon-deep);letter-spacing:-.02em}
   .tag.plain{background:#F1F3F0;color:var(--ink-faint)}
+  .tag.pub{background:#E3F0E8;color:#1F6E4A}
 
   .empty{padding:64px 32px;text-align:center}
   .empty .mark{font-size:34px;opacity:.75}
@@ -241,6 +242,9 @@
   .nb-empty{margin:20px 16px;padding:22px 16px;text-align:center;background:var(--surface);
     border:1px dashed var(--line);border-radius:14px;font-size:13px;color:var(--ink-faint);line-height:1.7;letter-spacing:-.02em}
   .nb-loading{margin:24px;text-align:center;font-size:13px;color:var(--ink-faint)}
+  .nb-rangewrap{display:flex;align-items:center;gap:12px;padding:2px 18px 14px}
+  .nb-rangewrap input[type=range]{flex:1;accent-color:var(--celadon)}
+  .nb-rangeval{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--celadon-deep);letter-spacing:-.02em;min-width:74px;text-align:right}
   .field input[type=text],.field input[type=date],.field select,.field textarea{
     width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
     background:var(--surface);letter-spacing:-.025em}
@@ -415,9 +419,13 @@
     <section class="view" id="v-nearby">
       <div class="nearby-head">
         <h2>내 근처 지역맛집</h2>
-        <button class="btn ghost sm" id="nearby-refresh">새로고침</button>
+        <button class="btn ghost sm" id="nearby-refresh">📍 내 위치</button>
       </div>
       <p class="nearby-sub" id="nearby-sub">주변에서 다른 사람들이 공개한 맛집입니다.</p>
+      <div class="nb-rangewrap">
+        <input type="range" id="nb-range" min="1" max="50" step="1" value="10">
+        <span class="nb-rangeval" id="nb-rangeval">10km 이내</span>
+      </div>
       <div id="nearbybody"></div>
     </section>
   </main>
@@ -684,7 +692,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v30';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v31';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1035,6 +1043,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       $('#p-signout').onclick=async()=>{
         if(!confirm('로그아웃할까요? 이 기기에 남은 기록은 그대로 둡니다.')) return;
         await Auth.out(); toast('로그아웃했습니다.');
+        nearbyState={ center:null, rows:null };
         setSync('off'); refreshMe(); renderProfile();
       };
     }else{
@@ -1078,59 +1087,78 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return SEOUL;
   }
 
-  async function renderNearby(useGeo){
+  let nearbyState={ center:null, rows:null };   // 마지막 중심·불러온 데이터를 기억
+
+  function nearbyRadius(){ return parseInt($('#nb-range').value,10)||10; }
+
+  function paintNearby(){
+    const box=$('#nearbybody');
+    if(!nearbyState.center || !Array.isArray(nearbyState.rows)){ return; }
+    const center=nearbyState.center, radius=nearbyRadius();
+    const mine=session&&session.user?session.user.id:null;
+    const list=nearbyState.rows
+      .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
+      .filter(s=>s.dist<=radius)
+      .sort((a,b)=>a.dist-b.dist)
+      .slice(0,80);
+    if(!list.length){
+      box.innerHTML='<div class="nb-empty">'+radius+'km 이내에 공개된 맛집이 아직 없습니다.<br>거리를 넓혀 보거나, 맛집을 저장할 때 <b>지역맛집에 공개</b>를 켜 보세요.</div>';
+      return;
+    }
+    box.innerHTML='';
+    list.forEach(s=>{
+      const c=cat(s.cat);
+      const stars='★'.repeat(s.rating||0)+'<span class="off">'+'★'.repeat(5-(s.rating||0))+'</span>';
+      const card=el('div','nb-card');
+      card.innerHTML=
+        '<div class="nb-emoji" style="background:'+c.c+'">'+c.e+'</div>'+
+        '<div class="nb-body">'+
+          '<div class="nb-name">'+esc(s.name)+'</div>'+
+          '<div class="nb-stars">'+stars+'</div>'+
+          (s.addr?'<div class="nb-addr">'+esc(s.addr)+'</div>':'')+
+          '<div class="nb-meta"><span class="nb-dist">'+s.dist.toFixed(s.dist<10?1:0)+'km</span>'+
+            (s.by_name?'<span class="nb-by">· '+esc(s.by_name)+(mine&&s.user_id===mine?' (나)':'')+'</span>':'')+
+          '</div>'+
+        '</div>';
+      card.onclick=()=>window.open(kakaoPlaceUrl({name:s.name, addr:s.addr, url:s.url, lat:s.lat, lng:s.lng}),'_blank');
+      box.appendChild(card);
+    });
+  }
+
+  async function loadNearby(center, label){
     const box=$('#nearbybody'), sub=$('#nearby-sub');
+    sub.textContent=label;
+    box.innerHTML='<div class="nb-loading">주변 맛집을 불러오는 중…</div>';
+    const rows=await Spots.near(center.lat, center.lng);
+    if(rows===null){ box.innerHTML='<div class="nb-empty">불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.</div>'; return; }
+    nearbyState={ center, rows };
+    paintNearby();
+  }
+
+  async function renderNearby(useGeo){
+    const box=$('#nearbybody');
     if(!cloudOn()){
       box.innerHTML='<div class="nb-empty">지역맛집은 로그인 후 쓸 수 있습니다.<br>프로필 탭에서 카카오로 로그인해 주세요.</div>';
       return;
     }
-    box.innerHTML='<div class="nb-loading">주변 맛집을 불러오는 중…</div>';
-    const show=async(center, label)=>{
-      sub.textContent=label;
-      const rows=await Spots.near(center.lat, center.lng);
-      if(rows===null){ box.innerHTML='<div class="nb-empty">불러오지 못했습니다. 잠시 뒤 새로고침해 주세요.</div>'; return; }
-      const mine=session&&session.user?session.user.id:null;
-      const list=rows
-        .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
-        .filter(s=>s.dist<=35)
-        .sort((a,b)=>a.dist-b.dist)
-        .slice(0,60);
-      if(!list.length){
-        box.innerHTML='<div class="nb-empty">아직 주변에 공개된 맛집이 없습니다.<br>맛집을 저장할 때 <b>지역맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.</div>';
-        return;
-      }
-      box.innerHTML='';
-      list.forEach(s=>{
-        const c=cat(s.cat);
-        const stars='★'.repeat(s.rating||0)+'<span class="off">'+'★'.repeat(5-(s.rating||0))+'</span>';
-        const card=el('div','nb-card');
-        card.innerHTML=
-          '<div class="nb-emoji" style="background:'+c.c+'">'+c.e+'</div>'+
-          '<div class="nb-body">'+
-            '<div class="nb-name">'+esc(s.name)+'</div>'+
-            '<div class="nb-stars">'+stars+'</div>'+
-            (s.addr?'<div class="nb-addr">'+esc(s.addr)+'</div>':'')+
-            '<div class="nb-meta"><span class="nb-dist">'+s.dist.toFixed(s.dist<10?1:0)+'km</span>'+
-              (s.by_name?'<span class="nb-by">· '+esc(s.by_name)+(mine&&s.user_id===mine?' (나)':'')+'</span>':'')+
-            '</div>'+
-          '</div>';
-        card.onclick=()=>{
-          // 뷰어와 같은 방식으로 네이버·카카오 링크를 새 탭에 바로 열 수 있게
-          window.open(kakaoPlaceUrl({name:s.name, addr:s.addr, url:s.url, lat:s.lat, lng:s.lng}),'_blank');
-        };
-        box.appendChild(card);
-      });
-    };
+    // 이미 불러온 게 있으면 다시 그리기만 (탭 전환·거리조절 시 목록이 사라지지 않게)
+    if(!useGeo && nearbyState.center && nearbyState.rows){ paintNearby(); return; }
+
     if(useGeo && navigator.geolocation){
+      $('#nearbybody').innerHTML='<div class="nb-loading">현재 위치를 확인하는 중…</div>';
       navigator.geolocation.getCurrentPosition(
-        pos=>show({lat:pos.coords.latitude,lng:pos.coords.longitude},'현재 위치 주변에서 다른 사람들이 공개한 맛집입니다.'),
-        ()=>show(nearbyCenter(),'내 맛집 근처에서 다른 사람들이 공개한 맛집입니다. (위치 권한을 켜면 더 정확해요)')
+        pos=>loadNearby({lat:pos.coords.latitude,lng:pos.coords.longitude},'현재 위치 주변에서 다른 사람들이 공개한 맛집입니다.'),
+        ()=>loadNearby(nearbyCenter(),'내 맛집 근처에서 공개된 맛집입니다. (위치 권한을 켜면 더 정확해요)')
       );
     }else{
-      show(nearbyCenter(),'내 맛집 근처에서 다른 사람들이 공개한 맛집입니다.');
+      loadNearby(nearbyCenter(),'내 맛집 근처에서 공개된 맛집입니다.');
     }
   }
   $('#nearby-refresh').onclick=()=>renderNearby(true);
+  $('#nb-range').addEventListener('input', ()=>{
+    $('#nb-rangeval').textContent=nearbyRadius()+'km 이내';
+    paintNearby();
+  });
 
   /* ================= 지도 ================= */
   const ZOOM={kakao:{wide:8,mid:5,close:2}, leaflet:{wide:11,mid:14,close:17}};
@@ -1306,6 +1334,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         (p.addr?'<span class="addr">'+esc(p.addr)+'</span>':'')+
         (p.memo?'<span class="memo">'+esc(p.memo)+'</span>':'')+
         '<span class="meta"><span class="tag">'+esc(p.folder||'내 맛집')+'</span>'+
+        (p.public?'<span class="tag pub">🌏 공개</span>':'')+
         (p.lat?'<span class="tag plain">📍 위치 있음</span>':'')+
         (p.visited?'<span class="tag plain">'+esc(p.visited)+'</span>':'')+
         (p.tags||[]).map(t=>'<span class="tag plain">#'+esc(t)+'</span>').join('')+
