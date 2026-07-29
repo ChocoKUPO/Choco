@@ -40,6 +40,7 @@
     border-bottom:1px solid transparent;transition:border-color .2s}
   .topbar.scrolled{border-color:var(--line)}
   .brand{display:flex;align-items:center;gap:9px}
+  .brand-logo{border-radius:7px;flex:0 0 auto;display:block}
   .brand h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.045em}
   .brand .count{font-size:12px;font-weight:700;color:var(--celadon);background:var(--celadon-soft);
     padding:3px 9px;border-radius:999px;letter-spacing:-.02em}
@@ -342,6 +343,7 @@
 <div class="app">
   <header class="topbar" id="topbar">
     <div class="brand">
+      <img class="brand-logo" src="icons/logo.png" alt="" width="28" height="28">
       <h1>미식노트</h1>
       <span class="count" id="count">0곳</span>
       <span class="sp"></span>
@@ -692,7 +694,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v31';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v32';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
