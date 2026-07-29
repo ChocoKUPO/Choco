@@ -694,7 +694,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v33';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v34';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -956,14 +956,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     },
     async near(lat,lng){
       if(!cloudOn()) return null;
-      // 위·경도 박스로 1차 필터(약 ±0.6도 ≈ 60km, 슬라이더 최대 50km를 여유있게 커버) 후 거리순 정렬
-      const d=0.6;
-      const q='?select=*'+
-        '&lat=gte.'+(lat-d)+'&lat=lte.'+(lat+d)+
-        '&lng=gte.'+(lng-d)+'&lng=lte.'+(lng+d)+
-        '&limit=500';
+      // 전체 공개 맛집을 받아 화면에서 거리로 거릅니다.
+      // (규모가 작을 때 가장 단순·정확. '가장 가까운 곳까지 몇 km'도 항상 계산됩니다.)
       try{
-        const r=await fetch(sbBase()+'/rest/v1/spots'+q,{headers:{'apikey':sbKey()}});
+        const r=await fetch(sbBase()+'/rest/v1/spots?select=*&limit=1000',{headers:{'apikey':sbKey()}});
         if(!r.ok) return null;
         return await r.json();
       }catch(e){ return null; }
@@ -1143,6 +1139,17 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   async function loadNearby(center, label){
     const box=$('#nearbybody'), sub=$('#nearby-sub');
     sub.textContent=label;
+    // 잡힌 위치가 어느 동네인지 표시해, 위치가 엉뚱하게 잡혔는지 바로 알 수 있게 합니다
+    if(provider==='kakao' && window.kakao && kakao.maps.services){
+      try{
+        new kakao.maps.services.Geocoder().coord2RegionCode(center.lng, center.lat, (res, status)=>{
+          if(status===kakao.maps.services.Status.OK && res && res[0]){
+            const rg=(res.find(r=>r.region_type==='H')||res[0]);
+            sub.textContent=label+' · 기준 위치: '+rg.address_name;
+          }
+        });
+      }catch(e){}
+    }
     box.innerHTML='<div class="nb-loading">주변 맛집을 불러오는 중…</div>';
     const rows=await Spots.near(center.lat, center.lng);
     if(rows===null){
