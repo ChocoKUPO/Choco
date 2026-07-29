@@ -1,5 +1,9 @@
--- 지역맛집(공개) 테이블 — Supabase SQL Editor에 붙여넣고 실행하세요.
--- 이미 실행한 적 있어도 오류 없이 다시 돌아갑니다.
+create table if not exists public.notes (
+  user_id uuid primary key references auth.users on delete cascade,
+  payload jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.notes enable row level security;
 
 create table if not exists public.spots (
   id text primary key,
@@ -16,11 +20,17 @@ create table if not exists public.spots (
 );
 alter table public.spots enable row level security;
 
+drop policy if exists "read own"   on public.notes;
+drop policy if exists "insert own" on public.notes;
+drop policy if exists "update own" on public.notes;
 drop policy if exists "spots read all"   on public.spots;
 drop policy if exists "spots insert own" on public.spots;
 drop policy if exists "spots update own" on public.spots;
 drop policy if exists "spots delete own" on public.spots;
 
+create policy "read own"   on public.notes for select using (auth.uid() = user_id);
+create policy "insert own" on public.notes for insert with check (auth.uid() = user_id);
+create policy "update own" on public.notes for update using (auth.uid() = user_id);
 create policy "spots read all"    on public.spots for select using (true);
 create policy "spots insert own"  on public.spots for insert with check (auth.uid() = user_id);
 create policy "spots update own"  on public.spots for update using (auth.uid() = user_id);
