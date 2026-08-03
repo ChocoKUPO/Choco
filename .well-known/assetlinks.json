@@ -1,1 +1,8 @@
-
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "kr.chocokupo.choco",
+        "sha256_cert_fingerprints": ["13:36:08:33:D3:8C:C4:E9:77:D0:87:12:D0:87:D1:4E:88:6A:BB:E7:DF:BF:83:DA:E2:97:78:09:32:0A:22:40"]
+      }
+    }]
