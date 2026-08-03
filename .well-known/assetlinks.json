@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "io.github.chocokupo.twa",
-        "sha256_cert_fingerprints": ["AF:5C:12:8F:8D:62:12:3A:7A:51:1A:82:81:D2:5D:A0:B9:38:CD:77:B5:2E:31:E1:AB:E3:F9:0B:B5:E9:82:C7"]
+        "sha256_cert_fingerprints": ["94:41:FF:39:01:18:3E:3A:A0:8C:C7:29:91:3D:93:A5:AC:BE:B5:4B:DC:F3:DA:E2:E9:05:BA:67:BD:A7:66:77"]
       }
     }]
