@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="google-adsense-account" content="ca-pub-1402923836700071">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>미식노트 — 내 맛집 지도</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
@@ -94,6 +95,12 @@
     background:var(--celadon-soft);color:var(--celadon-deep);letter-spacing:-.02em}
   .tag.plain{background:#F1F3F0;color:var(--ink-faint)}
   .tag.pub{background:#E3F0E8;color:#1F6E4A}
+  /* 광고 배너 자리 (프로필 상단) */
+  .ad-slot{margin:12px 14px 0;border:1px dashed var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .ad-label{font-size:9.5px;letter-spacing:.06em;color:var(--ink-faint);padding:3px 8px 0;text-transform:uppercase}
+  .ad-body{min-height:50px;display:flex;align-items:center;justify-content:center;padding:6px 8px 8px}
+  .ad-placeholder{font-size:12px;color:var(--ink-faint);letter-spacing:-.02em}
+  .ad-body ins.adsbygoogle{display:block;width:100%}
   .pager{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 0 6px}
   .pgbtn{font-size:13px;font-weight:700;letter-spacing:-.02em;padding:8px 14px;border-radius:10px;
     background:var(--surface);border:1px solid var(--line);color:var(--celadon-deep)}
@@ -420,6 +427,13 @@
     </section>
 
     <section class="view" id="v-profile">
+      <div class="ad-slot" id="ad-profile">
+        <div class="ad-label">광고</div>
+        <div class="ad-body" id="ad-profile-body">
+          <!-- 애드센스 승인 후 여기에 광고 코드를 넣습니다 -->
+          <span class="ad-placeholder">광고 자리</span>
+        </div>
+      </div>
       <div id="profilebody"></div>
     </section>
 
@@ -699,7 +713,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v39';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v41';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -764,6 +778,16 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
      └────────────────────────────────────────────────────────────┘ */
   const BUILTIN_SB_URL = 'https://dfuihsljqfbwjmmdgjsl.supabase.co';   // ← 예: 'https://abcdefgh.supabase.co'
   const BUILTIN_SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmdWloc2xqcWZid2ptbWRnanNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDIyNjYsImV4cCI6MjEwMDQxODI2Nn0.BAdqONR0QK2LvkZW64tD1OcpYwb8LSjt_OJMuhoo0C4';   // ← 예: 'eyJhbGci...'
+
+  /* ┌────────────────────────────────────────────────────────────┐
+     │  구글 애드센스 광고 (프로필 상단 배너)                        │
+     │  애드센스 승인 뒤 아래 두 값을 채우면 광고가 자동으로 뜹니다. │
+     │   · ADSENSE_CLIENT : 'ca-pub-0000000000000000' (게시자 ID)   │
+     │   · ADSENSE_SLOT   : '0000000000' (광고 단위 슬롯 ID)        │
+     │  둘 다 비어 있으면 '광고 자리' 안내만 보입니다.               │
+     └────────────────────────────────────────────────────────────┘ */
+  const ADSENSE_CLIENT = 'ca-pub-1402923836700071';   // 게시자 ID (채워짐)
+  const ADSENSE_SLOT   = '';   // 승인 후 광고 단위를 만들면 나오는 슬롯 ID를 여기에
 
   let state = {places:[], kakaoKey:'', sb:{url:'',key:''}, owner:'local', region:''};
   let session = null;
@@ -1005,8 +1029,30 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     else t.textContent='이 기기에 저장 중';
   }
 
+  /* ================= 광고 (프로필 상단 배너) ================= */
+  let adsLoaded=false;
+  function loadAd(){
+    if(!ADSENSE_CLIENT || !ADSENSE_SLOT) return;   // 값이 없으면 '광고 자리' 안내 그대로
+    const body=$('#ad-profile-body'); if(!body) return;
+    if(body.dataset.filled) return;                // 이미 넣었으면 중복 방지
+    body.dataset.filled='1';
+    body.innerHTML='<ins class="adsbygoogle" style="display:block" '+
+      'data-ad-client="'+ADSENSE_CLIENT+'" data-ad-slot="'+ADSENSE_SLOT+'" '+
+      'data-ad-format="auto" data-full-width-responsive="true"></ins>';
+    // 애드센스 스크립트는 한 번만 로드
+    if(!adsLoaded){
+      adsLoaded=true;
+      const s=document.createElement('script');
+      s.async=true; s.crossOrigin='anonymous';
+      s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+ADSENSE_CLIENT;
+      document.head.appendChild(s);
+    }
+    try{ (window.adsbygoogle=window.adsbygoogle||[]).push({}); }catch(e){}
+  }
+
   /* ================= 프로필 탭 ================= */
   function renderProfile(){
+    loadAd();
     const box=$('#profilebody');
     if(session && session.user){
       const u=session.user;
