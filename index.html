@@ -553,9 +553,6 @@
     <button id="viewedit" style="color:var(--celadon)">수정</button>
   </div>
   <div class="form" id="viewbody"></div>
-  <div style="padding:0 20px 20px">
-    <button class="btn danger full" id="viewdel">이 맛집 삭제</button>
-  </div>
 </div>
 
 <!-- 설정 (일반 사용자용) -->
@@ -724,7 +721,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v45';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v46';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1936,17 +1933,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     Spots.remove(gone);
     closeSheet(); renderList(); drawPins(); toast('삭제했습니다.');
   };
-  $('#viewdel').onclick=async()=>{
-    if(!viewing) return;
-    const id=viewing;
-    const p=state.places.find(x=>x.id===id);
-    if(!confirm('"'+(p?p.name:'이 맛집')+'"을(를) 삭제할까요? 되돌릴 수 없습니다.')) return;
-    state.places=state.places.filter(x=>x.id!==id);
-    await saveLocal(); schedulePush();
-    Spots.remove(id);
-    closeViewer(); renderList(); drawPins(); toast('삭제했습니다.');
-  };
-
   /* ================= 일반 설정 시트 ================= */
   function openSettings(){
     $('#buildtag').textContent='버전 1.0.0 · '+APP_BUILD;
