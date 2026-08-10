@@ -721,7 +721,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v50';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v51';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1744,21 +1744,27 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return toks[0]||'';
   }
   function naverBlogUrl(place){
-    const q = (place.name+' '+areaHint(place.addr)).trim();
+    // 블로그 후기는 지역을 붙이면 오히려 글이 더 안 나옵니다. 가게 이름만으로 검색합니다.
+    const q = place.name.trim();
     return 'https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(q);
   }
   function naverPlaceUrl(place){
-    const q = (place.name+' '+areaHint(place.addr)).trim();
-    // 좌표가 있으면 그 지점을 중심으로 검색해 다른 지역 동명 가게와 섞이지 않게 합니다
+    // 좌표가 있으면 그 지점을 중심으로 검색해, 이름·지역이 겹쳐도 바로 그 가게가 나오게 합니다.
     if(place.lat && place.lng){
-      return 'https://map.naver.com/p/search/'+encodeURIComponent(q)+
-             '?c='+place.lng+','+place.lat+',15,0,0,0,dh';
+      return 'https://map.naver.com/p/search/'+encodeURIComponent(place.name.trim())+
+             '?c='+place.lng+','+place.lat+',17,0,0,0,dh';
     }
+    // 좌표가 없을 때만 이름+도시로 검색
+    const q = (place.name+' '+areaHint(place.addr)).trim();
     return 'https://map.naver.com/p/search/'+encodeURIComponent(q);
   }
   function kakaoPlaceUrl(place){
-    // 저장 때 받아둔 정확한 카카오 장소 페이지가 있으면 그걸, 없으면 이름+동네로 카카오맵 검색을 엽니다
+    // 저장 때 받아둔 정확한 카카오 장소 페이지가 있으면 그걸 우선 엽니다.
     if(place.url) return place.url;
+    // 좌표가 있으면 지도를 그 지점 중심으로 열어 정확한 가게가 잡히게 합니다.
+    if(place.lat && place.lng){
+      return 'https://map.kakao.com/link/map/'+encodeURIComponent(place.name.trim())+','+place.lat+','+place.lng;
+    }
     const q = (place.name+' '+areaHint(place.addr)).trim();
     return 'https://map.kakao.com/?q='+encodeURIComponent(q);
   }
