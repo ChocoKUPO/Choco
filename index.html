@@ -721,7 +721,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v48';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v49';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1726,11 +1726,27 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   let viewMap=null, viewing=null;
 
   // 주소에서 '구/동/읍/면' 같은 동네 조각만 뽑아 검색 정확도를 높입니다
+  // 검색 정확도를 위해 주소에서 '도로명 + 번지'를 뽑습니다.
+  // 예: "경북 포항시 북구 중흥로310번길 18-1" → "중흥로310번길 18-1"
+  // 도로명이 없으면 동/읍/면까지, 그것도 없으면 시/구 수준으로 넓혀 씁니다.
   function areaHint(addr){
     if(!addr) return '';
     const toks=addr.split(/\s+/);
-    const picked=toks.filter(t=>/(시|군|구|동|읍|면|로|길)$/.test(t)).slice(0,2);
-    return (picked.length?picked:toks.slice(0,2)).join(' ');
+    // 도로명(로/길로 끝나는 토큰)의 위치를 찾습니다
+    const roadIdx=toks.findIndex(t=>/(로|길)$/.test(t));
+    if(roadIdx>=0){
+      // 도로명 + 그 뒤 번지(숫자, 18-1 형태 포함) 하나까지
+      const parts=[toks[roadIdx]];
+      const next=toks[roadIdx+1];
+      if(next && /^\d/.test(next)) parts.push(next);
+      return parts.join(' ');
+    }
+    // 도로명이 없으면 동/읍/면
+    const dong=toks.filter(t=>/(동|읍|면)$/.test(t)).slice(-1);
+    if(dong.length) return dong[0];
+    // 그것도 없으면 시/군/구 중 가장 좁은 것
+    const gu=toks.filter(t=>/(시|군|구)$/.test(t)).slice(-1);
+    return gu.length?gu[0]:toks.slice(-2).join(' ');
   }
   function naverBlogUrl(place){
     const q = (place.name+' '+areaHint(place.addr)).trim();
