@@ -721,7 +721,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v51';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v52';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1744,8 +1744,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return toks[0]||'';
   }
   function naverBlogUrl(place){
-    // 블로그 후기는 지역을 붙이면 오히려 글이 더 안 나옵니다. 가게 이름만으로 검색합니다.
-    const q = place.name.trim();
+    // "동창생"처럼 흔한 이름은 이름만 넣으면 영화·노래가 나옵니다.
+    // 이름 + 도시 + "맛집"으로 검색해 식당 후기로 좁힙니다.
+    const city = areaHint(place.addr);
+    const q = (place.name + (city?' '+city:'') + ' 맛집').trim();
     return 'https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(q);
   }
   function naverPlaceUrl(place){
