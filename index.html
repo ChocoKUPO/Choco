@@ -497,6 +497,10 @@
       <div class="catgrid" id="catgrid"></div>
     </div>
     <div class="field">
+      <label for="f-catname">세부 업종 <span style="font-weight:400;color:var(--ink-faint);font-size:11px">(네이버·블로그 검색에 쓰입니다)</span></label>
+      <input type="text" id="f-catname" placeholder="예: 게요리, 국밥, 브런치카페">
+    </div>
+    <div class="field">
       <label>내 점수</label>
       <div class="rate" id="rate"></div>
     </div>
@@ -721,7 +725,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v55';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v56';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1519,6 +1523,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(it.category_name||it.category_group_code) draft.cat=guessCat(it.category_name,it.category_group_code);
     // 카카오 세부 업종명(예: "음식점 > 해물,생선 > 게요리")의 맨 끝을 저장 → 검색에 활용
     draft.catName = (it.category_name||'').split('>').pop().trim();
+    if($('#f-catname')) $('#f-catname').value = draft.catName;
     draft.url=it.place_url||'';
     renderCats(); setCoord(lat,lng,true);
     if(pickMap) M.move(pickMap,lat,lng,'close');
@@ -1854,6 +1859,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     $('#f-tags').value=p?(p.tags||[]).join(', '):'';
     $('#f-date').value=p?(p.visited||''):'';
     $('#f-public').checked=p?!!p.public:false;
+    $('#f-catname').value=p?(p.catName||''):'';
     $('#f-kw').value=''; $('#f-region').value=state.region||''; $('#kwresults').innerHTML=''; $('#georesults').innerHTML='';
     const sel=$('#f-folder'); sel.innerHTML='';
     FOLDERS.forEach(f=>{ const o=el('option'); o.value=f; o.textContent=f; sel.appendChild(o); });
@@ -1911,7 +1917,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       return;
     }
     const isPublic=$('#f-public').checked;
-    const data={ name, cat:draft.cat, catName:draft.catName||'', rating:draft.rating,
+    const data={ name, cat:draft.cat, catName:$('#f-catname').value.trim(), rating:draft.rating,
       addr, memo:$('#f-memo').value.trim(),
       tags:$('#f-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
       visited:$('#f-date').value, folder:$('#f-folder').value,
