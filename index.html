@@ -324,6 +324,22 @@
   .eatline{height:1px;background:var(--line);margin:11px 0}
   .eatrow{font-size:13px;color:var(--ink-soft);margin-bottom:8px;line-height:1.55}
   .eatrow .eatk{font-weight:800;color:var(--brown-d);margin-right:2px}
+  /* 혼행 카드 */
+  .srbadge.trip{background:var(--celadon-soft);color:var(--celadon-deep);border-color:#C9DED3}
+  .srsub{font-size:12.5px;color:var(--celadon-deep);font-weight:600;margin-top:2px}
+  .srdesc{font-size:13.5px;color:var(--ink-soft);margin-top:8px;line-height:1.6}
+  .tripchips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .tripchip{background:var(--celadon-soft);color:var(--celadon-deep);font-size:12px;font-weight:600;
+    padding:6px 11px;border-radius:8px}
+  .eatrow .eatk.trip{color:var(--celadon-deep)}
+  /* 혼행 상세: 추천 코스 타임라인 */
+  .course{display:flex;flex-direction:column;gap:12px;margin-bottom:6px}
+  .crow{display:flex;gap:11px;align-items:flex-start}
+  .crow .ctime{flex:0 0 auto;background:var(--celadon);color:#fff;font-size:11px;font-weight:800;
+    padding:4px 10px;border-radius:7px;margin-top:1px}
+  .crow .cbody{flex:1;min-width:0}
+  .crow .cbody b{font-size:14px;font-weight:800;letter-spacing:-.02em}
+  .crow .cdesc{font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.55}
   /* 나홀로 상세 시트 헤더 (색깔 배너) */
   #solo-sheet, #v-solo{--brown:#B5741F;--brown-d:#8F5A14;--brown-soft:#F5ECDD}
   .solo-shead{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;gap:12px;
@@ -871,7 +887,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v66';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v67';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1510,11 +1526,18 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
           (x.tip?'<div class="eatrow"><span class="eatk">💡 혼밥 팁</span> '+esc(x.tip)+'</div>':'')+
           '<div class="srmore">자세히 보기 →</div></div>';
       }else{
-        html+='<div class="srcard" data-k="'+kind+'" data-i="'+i+'">'+
+        const chips=(Array.isArray(x.spots)?x.spots:[]).slice(0,3)
+          .map(sp=>'<span class="tripchip">'+esc(sp)+'</span>').join('');
+        html+='<div class="srcard tripcard" data-k="'+kind+'" data-i="'+i+'">'+
           '<div class="srtop"><div class="srname">'+esc(x.name)+'</div>'+
-          (x.tag?'<div class="srtag">'+esc(x.tag)+'</div>':'')+'</div>'+
-          (x.where?'<div class="srwhere">📍 '+esc(x.where)+'</div>':'')+
+          '<div class="srbadge trip">👤 혼행 추천</div></div>'+
+          (x.sub?'<div class="srsub">'+esc(x.where?x.where+' · ':'')+esc(x.sub)+'</div>':
+                 (x.where?'<div class="srsub">'+esc(x.where)+'</div>':''))+
           (x.desc?'<div class="srdesc">'+esc(x.desc)+'</div>':'')+
+          (chips?'<div class="tripchips">'+chips+'</div>':'')+
+          '<div class="eatline"></div>'+
+          (x.tip?'<div class="eatrow"><span class="eatk trip">💡 혼행 팁</span> '+esc(x.tip)+'</div>':'')+
+          (x.cost?'<div class="eatrow"><span class="eatk trip">💳 예상 경비</span> '+esc(x.cost)+'</div>':'')+
           '<div class="srmore">자세히 보기 →</div></div>';
       }
     });
@@ -1540,14 +1563,30 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     head.classList.toggle('eat', kind==='eat');
     head.classList.toggle('trip', kind==='trip');
     $('#solo-sheet-title').textContent=x.name;
-    $('#solo-sheet-sub').textContent = (x.where||'') + (x.cat?' · '+x.cat:'');
+    $('#solo-sheet-sub').textContent = kind==='trip'
+      ? ((x.where||'') + (x.sub?' · '+x.sub:''))
+      : ((x.where||'') + (x.cat?' · '+x.cat:''));
 
     let h='';
     if(kind==='trip'){
-      if(x.desc) h+='<p>'+esc(x.desc)+'</p>';
-      if(x.why){h+='<h3>혼자 가면 좋은 점</h3>'+checkList(x.why);}
-      if(x.spots){h+='<h3>들러볼 만한 곳</h3>'+checkList(x.spots);}
-      if(x.tip){h+='<h3>혼행 팁</h3>'+checkList(x.tip);}
+      if(x.detailDesc||x.desc) h+='<p>'+esc(x.detailDesc||x.desc)+'</p>';
+      // 혼자 걷는 추천 코스 (오전/오후/저녁 타임라인)
+      if(Array.isArray(x.course)&&x.course.length){
+        h+='<h3>혼자 걷는 추천 코스</h3><div class="course">';
+        x.course.forEach(c=>{
+          h+='<div class="crow"><span class="ctime">'+esc(c.time||'')+'</span>'+
+             '<div class="cbody"><b>'+esc(c.name||'')+'</b>'+
+             (c.desc?'<div class="cdesc">'+esc(c.desc)+'</div>':'')+'</div></div>';
+        });
+        h+='</div>';
+      }
+      // 근처 혼밥 스팟 (박스)
+      const eats=toList(x.eatSpots);
+      if(eats.length){ h+='<h3>근처 혼밥 스팟</h3>'+eats.map(e=>'<div class="menubox">'+esc(e)+'</div>').join(''); }
+      // 이동·숙소·안심 팁
+      if(x.moveTip) h+='<div class="noticetip"><span>🚌</span><div><b>이동 팁</b> '+esc(x.moveTip)+'</div></div>';
+      if(x.stayTip) h+='<div class="noticetip"><span>🏠</span><div><b>숙소 팁</b> '+esc(x.stayTip)+'</div></div>';
+      if(x.safeTip) h+='<div class="noticetip"><span>🛡️</span><div><b>혼자여도 안심</b> '+esc(x.safeTip)+'</div></div>';
     }else{
       if(x.desc) h+='<p>'+esc(x.desc)+'</p>';
       // 주문·이용 팁 (체크 목록)
