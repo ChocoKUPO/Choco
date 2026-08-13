@@ -854,22 +854,9 @@
 /* 서비스워커: 오프라인에서도 앱이 열리게 합니다 */
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').then(function(reg){
-      // 새 버전이 준비되면 한 번 자동 새로고침해서 최신 화면을 띄웁니다
-      reg.addEventListener('updatefound', function(){
-        var nw = reg.installing;
-        if(!nw) return;
-        nw.addEventListener('statechange', function(){
-          if(nw.state==='installed' && navigator.serviceWorker.controller){
-            location.reload();
-          }
-        });
-      });
-    }).catch(function(){});
-    var refreshed=false;
-    navigator.serviceWorker.addEventListener('controllerchange', function(){
-      if(refreshed) return; refreshed=true; location.reload();
-    });
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+    // 새 버전은 다음에 앱을 새로 열 때 조용히 적용됩니다.
+    // (사용 중에 강제 새로고침하지 않아, 검색·입력 중 화면이 튕기지 않습니다.)
   });
 }
 </script>
@@ -887,7 +874,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v67';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v68';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
