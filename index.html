@@ -318,6 +318,12 @@
   .trip .sspin{border-top-color:var(--celadon)} .eat .sspin{border-top-color:var(--brown)}
   @keyframes sspin{to{transform:rotate(360deg)}}
   .serr{background:#FDECEC;border:1px solid #F5C6C6;color:#A63232;border-radius:12px;padding:13px 15px;font-size:13px;margin-top:14px}
+  /* 혼밥 카드 (추천메뉴·혼밥팁·편함배지) */
+  .srbadge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;flex:0 0 auto;
+    background:var(--brown-soft);color:var(--brown-d);border:1px solid #E8D5B5}
+  .eatline{height:1px;background:var(--line);margin:11px 0}
+  .eatrow{font-size:13px;color:var(--ink-soft);margin-bottom:8px;line-height:1.55}
+  .eatrow .eatk{font-weight:800;color:var(--brown-d);margin-right:2px}
   #solo-sheet-body{padding:18px 20px 34px}
   #solo-sheet-body h3{font-size:14px;font-weight:800;margin:16px 0 6px;letter-spacing:-.03em}
   #solo-sheet-body h3:first-child{margin-top:0}
@@ -840,7 +846,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v63';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v64';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1440,51 +1446,27 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     }catch(e){ soloError('trip', e.message); }
   }
 
-  // 혼밥: 카카오맵 키워드 검색(무료). 실제 그 동네 식당이 나옵니다.
-  const FOOD_KW={'아무거나':'맛집','한식·백반':'한식','국밥·탕':'국밥','면·분식':'분식','일식·초밥':'일식','고기·구이':'고기집','카페·브런치':'카페','이자카야·술집':'이자카야'};
+  // 혼밥: 함수(Gemini)로 추천 — 추천메뉴·혼밥팁·편함정도까지. 캐싱으로 무료 유지.
   async function findEat(more){
     const area=$('#se-area').value.trim();
     if(!area){ $('#se-results').innerHTML='<div class="serr">동네를 입력해 주세요. 예: 제주시 노형동</div>'; $('#se-area').focus(); return; }
     if(!more){ eatState.list=[]; eatState.page=1; } else { eatState.page=(eatState.page||1)+1; }
     renderSolo('eat', true);
-    const kw=area+' '+(FOOD_KW[SOLO.food]||'맛집');
     try{
-      const places=await kakaoKeyword(kw, eatState.page);
-      const items=places.map(p=>({
-        name:p.place_name,
-        where:(p.road_address_name||p.address_name||''),
-        tag:(p.category_name||'').split('>').pop().trim(),
-        desc:'',
-        catName:(p.category_name||'').split('>').pop().trim(),
-        url:p.place_url, lat:parseFloat(p.y), lng:parseFloat(p.x),
-        phone:p.phone||''
-      }));
-      // 중복 제거
+      const items=await tripReco({
+        kind:'eat', area, food:SOLO.food, level:SOLO.level, mood:SOLO.mood,
+        page:eatState.page, exclude:eatState.list.map(x=>x.name)
+      });
       const seen=new Set(eatState.list.map(x=>x.name));
       eatState.list=eatState.list.concat(items.filter(x=>!seen.has(x.name)));
       renderSolo('eat', false);
     }catch(e){ soloError('eat', e.message); }
   }
 
-  // 카카오 키워드 검색 Promise 래퍼
-  function kakaoKeyword(kw, page){
-    return new Promise((resolve,reject)=>{
-      if(!(window.kakao&&kakao.maps&&kakao.maps.services)) return reject(new Error('NOKAKAO'));
-      const ps=new kakao.maps.services.Places();
-      ps.keywordSearch(kw, (data,status)=>{
-        if(status===kakao.maps.services.Status.OK) resolve(data);
-        else if(status===kakao.maps.services.Status.ZERO_RESULT) resolve([]);
-        else reject(new Error('FAIL'));
-      }, {size:6, page:page||1});
-    });
-  }
-
   function soloError(kind, code){
     const box=$('#'+(kind==='trip'?'st':'se')+'-results');
     let msg='추천을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.';
-    if(code==='NOFN') msg='혼행 추천이 아직 준비 중이에요. (서버 함수 배포 필요)';
-    if(code==='NOKAKAO') msg='지도를 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.';
-    if(code==='ZERO'||code==='EMPTY') msg='그 동네에서 결과를 찾지 못했어요. 동네나 메뉴를 바꿔 보세요.';
+    if(code==='NOFN') msg='추천이 아직 준비 중이에요. (서버 함수 배포 필요)';
     box.innerHTML='<div class="serr">'+msg+'</div>';
   }
 
@@ -1493,12 +1475,23 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const box=$('#'+(kind==='trip'?'st':'se')+'-results');
     let html='';
     st.list.forEach((x,i)=>{
-      html+='<div class="srcard" data-k="'+kind+'" data-i="'+i+'">'+
-        '<div class="srtop"><div class="srname">'+esc(x.name)+'</div>'+
-        (x.tag?'<div class="srtag">'+esc(x.tag)+'</div>':'')+'</div>'+
-        (x.where?'<div class="srwhere">📍 '+esc(x.where)+'</div>':'')+
-        (x.desc?'<div class="srdesc">'+esc(x.desc)+'</div>':'')+
-        '<div class="srmore">자세히 보기 →</div></div>';
+      if(kind==='eat'){
+        html+='<div class="srcard eatcard" data-k="'+kind+'" data-i="'+i+'">'+
+          '<div class="srtop"><div class="srname">'+esc(x.name)+'</div>'+
+          (x.comfort?'<div class="srbadge">👤 '+esc(x.comfort)+'</div>':'')+'</div>'+
+          '<div class="srwhere">'+esc(x.where||'')+(x.cat?' · '+esc(x.cat):'')+'</div>'+
+          '<div class="eatline"></div>'+
+          (x.menu?'<div class="eatrow"><span class="eatk">🍚 추천 메뉴</span> '+esc(x.menu)+'</div>':'')+
+          (x.tip?'<div class="eatrow"><span class="eatk">💡 혼밥 팁</span> '+esc(x.tip)+'</div>':'')+
+          '<div class="srmore">자세히 보기 →</div></div>';
+      }else{
+        html+='<div class="srcard" data-k="'+kind+'" data-i="'+i+'">'+
+          '<div class="srtop"><div class="srname">'+esc(x.name)+'</div>'+
+          (x.tag?'<div class="srtag">'+esc(x.tag)+'</div>':'')+'</div>'+
+          (x.where?'<div class="srwhere">📍 '+esc(x.where)+'</div>':'')+
+          (x.desc?'<div class="srdesc">'+esc(x.desc)+'</div>':'')+
+          '<div class="srmore">자세히 보기 →</div></div>';
+      }
     });
     if(loading){
       html+='<div class="sload"><div class="sspin"></div>'+(kind==='trip'?'혼자 떠나기 좋은 곳을 고르는 중…':'혼자 먹기 좋은 곳을 찾는 중…')+'</div>';
@@ -1526,10 +1519,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       if(x.spots){h+='<h3>들러볼 만한 곳</h3>'+soloListify(x.spots);}
       if(x.tip){h+='<h3>혼행 팁</h3>'+soloListify(x.tip);}
     }else{
-      // 혼밥은 카카오 실데이터: 업종·연락처를 보여줍니다
-      if(x.tag){h+='<h3>업종</h3><p>'+esc(x.tag)+'</p>';}
-      if(x.phone){h+='<h3>전화</h3><p><a href="tel:'+esc(x.phone)+'">'+esc(x.phone)+'</a></p>';}
-      h+='<h3>혼밥 팁</h3><p>카운터석이나 1인 테이블이 있는지, 방문 전 지도·후기에서 확인해 보세요. 점심 오픈 직후나 피크 시간을 피하면 혼자서도 편하게 먹기 좋습니다.</p>';
+      // 혼밥 (AI 추천): 편함정도·추천메뉴·혼밥팁
+      if(x.cat){h+='<h3>업종</h3><p>'+esc(x.cat)+'</p>';}
+      if(x.comfort){h+='<h3>혼밥 편함</h3><p>'+esc(x.comfort)+'</p>';}
+      if(x.menu){h+='<h3>추천 메뉴</h3><p>'+esc(x.menu)+'</p>';}
+      if(x.tip){h+='<h3>혼밥 팁</h3><p>'+esc(x.tip)+'</p>';}
+      h+='<p style="color:var(--ink-faint);font-size:12px;margin-top:12px">※ AI 추천이라 실제와 다를 수 있어요. 아래 링크로 확인하세요.</p>';
     }
     h+='<div class="slinks"><a href="'+naver+'" target="_blank" rel="noopener">네이버 후기</a>'+
        '<a href="'+kakao+'" target="_blank" rel="noopener">카카오맵에서 보기</a></div>';
