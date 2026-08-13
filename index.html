@@ -324,12 +324,35 @@
   .eatline{height:1px;background:var(--line);margin:11px 0}
   .eatrow{font-size:13px;color:var(--ink-soft);margin-bottom:8px;line-height:1.55}
   .eatrow .eatk{font-weight:800;color:var(--brown-d);margin-right:2px}
+  /* 나홀로 상세 시트 헤더 (색깔 배너) */
+  #solo-sheet, #v-solo{--brown:#B5741F;--brown-d:#8F5A14;--brown-soft:#F5ECDD}
+  .solo-shead{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;gap:12px;
+    padding:20px 20px 16px;border-radius:22px 22px 0 0}
+  .solo-shead.eat{background:linear-gradient(135deg,#C17D22,#9A5E12)}
+  .solo-shead.trip{background:linear-gradient(135deg,#3C7D65,#2A5C48)}
+  .solo-shead .ss-titles{flex:1;min-width:0}
+  .solo-shead h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.04em;color:#fff}
+  .solo-shead .ss-sub{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:3px;font-weight:600}
+  .solo-shead .ss-x{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:0;cursor:pointer;
+    background:rgba(255,255,255,.22);color:#fff;font-size:15px}
   #solo-sheet-body{padding:18px 20px 34px}
-  #solo-sheet-body h3{font-size:14px;font-weight:800;margin:16px 0 6px;letter-spacing:-.03em}
+  #solo-sheet-body h3{font-size:14px;font-weight:800;margin:18px 0 8px;letter-spacing:-.03em}
+  .eat .+ #solo-sheet-body h3{color:var(--brown-d)}
   #solo-sheet-body h3:first-child{margin-top:0}
-  #solo-sheet-body p{font-size:14px;color:#3a463f;margin:0 0 9px;line-height:1.65}
-  #solo-sheet-body ul{margin:0 0 9px;padding-left:18px}
-  #solo-sheet-body li{font-size:14px;color:#3a463f;margin-bottom:5px}
+  #solo-sheet-body p{font-size:14px;color:#3a463f;margin:0 0 9px;line-height:1.7}
+  /* 체크 목록 */
+  .chklist{display:flex;flex-direction:column;gap:9px;margin-bottom:6px}
+  .chk{display:flex;gap:9px;font-size:13.5px;color:#3a463f;line-height:1.55}
+  .chk span{flex:0 0 auto;color:var(--brown);font-weight:800}
+  #solo-shead.trip ~ #solo-sheet-body .chk span{color:var(--celadon)}
+  /* 메뉴 박스 */
+  .menubox{border:1px solid #E6D3B3;border-radius:11px;padding:11px 13px;font-size:13.5px;
+    color:#4a3a22;margin-bottom:8px;font-weight:600;line-height:1.5}
+  /* 눈치 없이 먹기 */
+  .noticetip{display:flex;gap:9px;align-items:flex-start;margin-top:14px;font-size:13.5px;color:#3a463f;line-height:1.6}
+  .noticetip span{font-size:17px;flex:0 0 auto}
+  .noticetip b{color:var(--brown-d);font-weight:800}
+  .sfootnote{text-align:center;font-size:12px;color:var(--ink-faint);margin-top:18px}
   .slinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
   .slinks a{flex:1;min-width:130px;text-align:center;text-decoration:none;font-size:13.5px;font-weight:700;padding:12px;border-radius:11px;border:1px solid var(--line);color:var(--ink)}
   .slinks a:active{background:var(--surface)}
@@ -507,7 +530,7 @@
 
     <section class="view" id="v-nearby">
       <div class="nearby-head">
-        <h2>내 근처 지역맛집</h2>
+        <h2>내 근처 주변맛집</h2>
         <button class="btn ghost sm" id="nearby-refresh">📍 내 위치</button>
       </div>
       <p class="nearby-sub" id="nearby-sub">주변에서 다른 사람들이 공개한 맛집입니다.</p>
@@ -571,7 +594,7 @@
 
   <nav class="tabbar">
     <button class="tab on" data-view="list"><span class="ic">🍚</span><span class="lb">목록</span></button>
-    <button class="tab" data-view="nearby"><span class="ic">📍</span><span class="lb">지역맛집</span></button>
+    <button class="tab" data-view="nearby"><span class="ic">📍</span><span class="lb">주변맛집</span></button>
     <button class="tab" data-view="solo"><span class="ic">🧭</span><span class="lb">나홀로</span></button>
     <button class="tab" data-view="share"><span class="ic">🔗</span><span class="lb">공유</span></button>
     <button class="tab" data-view="profile"><span class="ic">👤</span><span class="lb">프로필</span></button>
@@ -583,12 +606,14 @@
 
 <!-- 나홀로 상세 -->
 <div class="sheet" id="solo-sheet">
-  <div class="sheet-head">
-    <button id="solo-sheet-close">닫기</button>
-    <h2 id="solo-sheet-title">상세</h2>
-    <span style="width:36px"></span>
+  <div class="solo-shead" id="solo-shead">
+    <div class="ss-titles">
+      <h2 id="solo-sheet-title">상세</h2>
+      <div class="ss-sub" id="solo-sheet-sub"></div>
+    </div>
+    <button class="ss-x" id="solo-sheet-close">✕</button>
   </div>
-  <div class="form" id="solo-sheet-body"></div>
+  <div id="solo-sheet-body"></div>
 </div>
 
 <!-- 맛집 입력 -->
@@ -659,7 +684,7 @@
     </div>
     <div class="field">
       <label class="toggle-row" for="f-public">
-        <span><b>지역맛집에 공개</b><br><span style="font-size:12px;color:var(--ink-faint);font-weight:400">켜면 내 근처 사람들이 이 맛집을 볼 수 있습니다. 이름·주소·별점만 공개되고, 한 줄 기록은 공개되지 않습니다.</span></span>
+        <span><b>주변맛집에 공개</b><br><span style="font-size:12px;color:var(--ink-faint);font-weight:400">켜면 내 근처 사람들이 이 맛집을 볼 수 있습니다. 이름·주소·별점만 공개되고, 한 줄 기록은 공개되지 않습니다.</span></span>
         <input type="checkbox" id="f-public">
       </label>
     </div>
@@ -846,7 +871,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v64';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v66';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1287,7 +1312,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       const total=nearbyState.rows.length;
       let hint;
       if(total===0){
-        hint='아직 아무도 맛집을 공개하지 않았습니다.<br>맛집을 저장할 때 <b>지역맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.';
+        hint='아직 아무도 맛집을 공개하지 않았습니다.<br>맛집을 저장할 때 <b>주변맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.';
       }else{
         // 데이터는 있는데 이 반경 밖 — 가장 가까운 곳까지 거리를 알려줍니다
         const nearest=nearbyState.rows
@@ -1347,7 +1372,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   async function renderNearby(useGeo){
     const box=$('#nearbybody');
     if(!cloudOn()){
-      box.innerHTML='<div class="nb-empty">지역맛집은 로그인 후 쓸 수 있습니다.<br>프로필 탭에서 카카오로 로그인해 주세요.</div>';
+      box.innerHTML='<div class="nb-empty">주변맛집은 로그인 후 쓸 수 있습니다.<br>프로필 탭에서 카카오로 로그인해 주세요.</div>';
       return;
     }
     // 이미 불러온 게 있으면 다시 그리기만 (탭 전환·거리조절 시 목록이 사라지지 않게)
@@ -1503,34 +1528,49 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const mb=box.querySelector('.smore'); if(mb) mb.onclick=()=>(kind==='trip'?findTrip(true):findEat(true));
   }
 
-  function soloListify(s){
-    const parts=String(s||'').split(/[\n·]|,/).map(t=>t.trim()).filter(Boolean);
-    if(parts.length<=1) return '<p>'+esc(s)+'</p>';
-    return '<ul>'+parts.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
+  // 배열/문자열을 항목 배열로
+  function toList(v){
+    if(Array.isArray(v)) return v.map(t=>String(t).trim()).filter(Boolean);
+    return String(v||'').split(/[\n·]|,/).map(t=>t.trim()).filter(Boolean);
   }
   function openSoloSheet(kind, x){
-    const naver='https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(x.name+' '+(x.tag||x.where||''));
+    const naver='https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(x.name+' '+(x.cat||x.tag||x.where||''));
     const kakao=x.url || ('https://map.kakao.com/?q='+encodeURIComponent(x.name+' '+(x.where||'')));
-    let h='';
-    if(x.where) h+='<p style="color:var(--ink-faint);font-size:13px">📍 '+esc(x.where)+'</p>';
-    if(x.desc) h+='<p>'+esc(x.desc)+'</p>';
-    if(kind==='trip'){
-      if(x.why){h+='<h3>혼자 가면 좋은 점</h3>'+soloListify(x.why);}
-      if(x.spots){h+='<h3>들러볼 만한 곳</h3>'+soloListify(x.spots);}
-      if(x.tip){h+='<h3>혼행 팁</h3>'+soloListify(x.tip);}
-    }else{
-      // 혼밥 (AI 추천): 편함정도·추천메뉴·혼밥팁
-      if(x.cat){h+='<h3>업종</h3><p>'+esc(x.cat)+'</p>';}
-      if(x.comfort){h+='<h3>혼밥 편함</h3><p>'+esc(x.comfort)+'</p>';}
-      if(x.menu){h+='<h3>추천 메뉴</h3><p>'+esc(x.menu)+'</p>';}
-      if(x.tip){h+='<h3>혼밥 팁</h3><p>'+esc(x.tip)+'</p>';}
-      h+='<p style="color:var(--ink-faint);font-size:12px;margin-top:12px">※ AI 추천이라 실제와 다를 수 있어요. 아래 링크로 확인하세요.</p>';
-    }
-    h+='<div class="slinks"><a href="'+naver+'" target="_blank" rel="noopener">네이버 후기</a>'+
-       '<a href="'+kakao+'" target="_blank" rel="noopener">카카오맵에서 보기</a></div>';
+    const head=$('#solo-shead');
+    head.classList.toggle('eat', kind==='eat');
+    head.classList.toggle('trip', kind==='trip');
     $('#solo-sheet-title').textContent=x.name;
+    $('#solo-sheet-sub').textContent = (x.where||'') + (x.cat?' · '+x.cat:'');
+
+    let h='';
+    if(kind==='trip'){
+      if(x.desc) h+='<p>'+esc(x.desc)+'</p>';
+      if(x.why){h+='<h3>혼자 가면 좋은 점</h3>'+checkList(x.why);}
+      if(x.spots){h+='<h3>들러볼 만한 곳</h3>'+checkList(x.spots);}
+      if(x.tip){h+='<h3>혼행 팁</h3>'+checkList(x.tip);}
+    }else{
+      if(x.desc) h+='<p>'+esc(x.desc)+'</p>';
+      // 주문·이용 팁 (체크 목록)
+      const tips=toList(x.tips);
+      if(tips.length){ h+='<h3>주문·이용 팁</h3><div class="chklist">'+
+        tips.map(t=>'<div class="chk"><span>✓</span>'+esc(t)+'</div>').join('')+'</div>'; }
+      // 혼밥하기 좋은 메뉴 (박스)
+      const menus=toList(x.menus);
+      if(menus.length){ h+='<h3>혼밥하기 좋은 메뉴</h3>'+
+        menus.map(m=>'<div class="menubox">'+esc(m)+'</div>').join(''); }
+      // 눈치 없이 먹기
+      if(x.soloTip){ h+='<div class="noticetip"><span>😌</span><div><b>눈치 없이 먹기</b> '+esc(x.soloTip)+'</div></div>'; }
+    }
+    h+='<div class="sfootnote">실제 영업시간·위치는 지도 앱에서 한 번 더 확인해 주세요.</div>';
+    h+='<div class="slinks"><a href="'+naver+'" target="_blank" rel="noopener">네이버 후기</a>'+
+       '<a href="'+kakao+'" target="_blank" rel="noopener">지도에서 보기</a></div>';
     $('#solo-sheet-body').innerHTML=h;
     $('#scrim').classList.add('on'); $('#solo-sheet').classList.add('on');
+  }
+  function checkList(s){
+    const parts=toList(s);
+    if(parts.length<=1) return '<p>'+esc(s)+'</p>';
+    return '<div class="chklist">'+parts.map(t=>'<div class="chk"><span>✓</span>'+esc(t)+'</div>').join('')+'</div>';
   }
   function closeSoloSheet(){ $('#scrim').classList.remove('on'); $('#solo-sheet').classList.remove('on'); }
   $('#solo-sheet-close').onclick=closeSoloSheet;
