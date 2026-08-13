@@ -266,7 +266,7 @@
   .nb-rangewrap input[type=range]{flex:1;accent-color:var(--celadon)}
   .nb-rangeval{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--celadon-deep);letter-spacing:-.02em;min-width:74px;text-align:right}
 
-  /* ===== 1인석 ===== */
+  /* ===== 나홀로 ===== */
   #v-solo{--brown:#B5741F;--brown-d:#8F5A14;--brown-soft:#F5ECDD}
   .solo-head{padding:16px 18px 10px}
   .solo-head h2{font-size:24px;font-weight:900;letter-spacing:-.05em;margin:0}
@@ -514,7 +514,7 @@
 
     <section class="view" id="v-solo">
       <div class="solo-head">
-        <h2>1인석</h2>
+        <h2>나홀로</h2>
         <p class="solo-sub">혼자라서 더 좋은 여행과 식사</p>
       </div>
       <div class="solo-tabs">
@@ -566,7 +566,7 @@
   <nav class="tabbar">
     <button class="tab on" data-view="list"><span class="ic">🍚</span><span class="lb">목록</span></button>
     <button class="tab" data-view="nearby"><span class="ic">📍</span><span class="lb">지역맛집</span></button>
-    <button class="tab" data-view="solo"><span class="ic">🧭</span><span class="lb">1인석</span></button>
+    <button class="tab" data-view="solo"><span class="ic">🧭</span><span class="lb">나홀로</span></button>
     <button class="tab" data-view="share"><span class="ic">🔗</span><span class="lb">공유</span></button>
     <button class="tab" data-view="profile"><span class="ic">👤</span><span class="lb">프로필</span></button>
   </nav>
@@ -575,7 +575,7 @@
 
 <div class="scrim" id="scrim"></div>
 
-<!-- 1인석 상세 -->
+<!-- 나홀로 상세 -->
 <div class="sheet" id="solo-sheet">
   <div class="sheet-head">
     <button id="solo-sheet-close">닫기</button>
@@ -840,7 +840,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v61';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v62';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1363,7 +1363,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     paintNearby();
   });
 
-  /* ================= 1인석 (혼행·혼밥 추천) ================= */
+  /* ================= 나홀로 (혼행·혼밥 추천) ================= */
   // 혼밥: 카카오맵 검색(무료, 앱 내장 키).
   // 혼행: Supabase Edge Function 'trip-reco'가 Gemini를 대신 호출합니다.
   //       → Gemini 키는 서버(함수)에만 있고 앱 소스에는 없습니다(안전).
