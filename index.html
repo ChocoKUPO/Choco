@@ -840,7 +840,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v62';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v63';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1427,11 +1427,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   async function findTrip(more){
     const area=$('#st-area').value.trim();
     const where=area || (SOLO.sido==='전국'?'전국 어디든':SOLO.sido);
-    if(!more) tripState.list=[];
+    if(!more){ tripState.list=[]; tripState.page=1; } else { tripState.page=(tripState.page||1)+1; }
     renderSolo('trip', true);
     try{
       const items=await tripReco({
         where, style:SOLO.style, budget:SOLO.budget, days:SOLO.days,
+        page:tripState.page,
         exclude:tripState.list.map(x=>x.name)
       });
       tripState.list=tripState.list.concat(items);
