@@ -213,11 +213,11 @@
 
   .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;
     background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);
-    display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
+    display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
   .tab{padding:9px 0 11px;display:grid;justify-items:center;gap:3px;color:var(--ink-faint)}
   .tab.on{color:var(--ink)}
   .tab .ic{font-size:17px;line-height:1}
-  .tab .lb{font-size:10.5px;font-weight:700;letter-spacing:-.02em}
+  .tab .lb{font-size:10px;font-weight:700;letter-spacing:-.03em}
 
   .fab{position:fixed;bottom:calc(74px + env(safe-area-inset-bottom));z-index:41;
     left:50%;transform:translateX(-50%);margin-left:186px;width:54px;height:54px;border-radius:50%;
@@ -265,6 +265,68 @@
   .nb-rangewrap{display:flex;align-items:center;gap:12px;padding:2px 18px 14px}
   .nb-rangewrap input[type=range]{flex:1;accent-color:var(--celadon)}
   .nb-rangeval{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--celadon-deep);letter-spacing:-.02em;min-width:74px;text-align:right}
+
+  /* ===== 1인석 ===== */
+  #v-solo{--brown:#B5741F;--brown-d:#8F5A14;--brown-soft:#F5ECDD}
+  .solo-head{padding:16px 18px 10px}
+  .solo-head h2{font-size:24px;font-weight:900;letter-spacing:-.05em;margin:0}
+  .solo-sub{font-size:13px;color:var(--ink-faint);font-weight:600;margin:2px 0 0}
+  .solo-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);
+    border:1px solid var(--line);border-radius:14px;padding:5px;margin:0 14px 16px}
+  .solo-tab{border:0;background:none;padding:12px 6px;border-radius:10px;font-size:14px;font-weight:800;
+    color:var(--ink-faint);cursor:pointer;letter-spacing:-.03em}
+  .solo-tab.on{background:#fff;box-shadow:var(--shadow)}
+  .solo-tab.on.trip{color:var(--celadon-deep)}
+  .solo-tab.on.eat{color:var(--brown-d)}
+  .solo-panel{display:none;padding:0 14px}
+  .solo-panel.on{display:block}
+  .sgrp{margin-bottom:18px}
+  .sq{display:block;font-size:14px;font-weight:800;margin-bottom:9px;letter-spacing:-.03em}
+  .shint{font-size:11.5px;color:var(--ink-faint);margin:7px 2px 0}
+  .stxt{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:15px;
+    font-family:inherit;color:var(--ink);background:var(--surface)}
+  .stxt:focus{outline:none;border-color:var(--celadon);background:#fff}
+  .eat .stxt:focus{border-color:var(--brown)}
+  .schips{display:flex;flex-wrap:wrap;gap:7px}
+  .schip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 15px;
+    font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer;letter-spacing:-.02em}
+  .schip:active{transform:scale(.96)}
+  .trip .schip.on{background:var(--celadon);border-color:var(--celadon);color:#fff}
+  .eat .schip.on{background:var(--brown);border-color:var(--brown);color:#fff}
+  .sgo{width:100%;border:0;border-radius:13px;padding:16px;font-size:15.5px;font-weight:800;color:#fff;
+    cursor:pointer;margin-top:18px;letter-spacing:-.03em}
+  .sgo.trip{background:var(--celadon)} .sgo.eat{background:var(--brown)}
+  .sgo:disabled{opacity:.55}
+  .sfoot{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:18px;line-height:1.7}
+  .sresults{margin-top:18px}
+  .srcard{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px 15px;
+    box-shadow:var(--shadow);margin-bottom:11px;cursor:pointer}
+  .srcard:active{transform:scale(.99)}
+  .srtop{display:flex;align-items:flex-start;gap:9px}
+  .srname{font-size:15.5px;font-weight:800;letter-spacing:-.03em;flex:1}
+  .srtag{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;flex:0 0 auto}
+  .trip .srtag{background:var(--celadon-soft);color:var(--celadon-deep)}
+  .eat .srtag{background:var(--brown-soft);color:var(--brown-d)}
+  .srwhere{font-size:12px;color:var(--ink-faint);margin-top:2px}
+  .srdesc{font-size:13px;color:var(--ink-soft);margin-top:8px;line-height:1.6}
+  .srmore{font-size:11.5px;font-weight:700;margin-top:9px}
+  .trip .srmore{color:var(--celadon-deep)} .eat .srmore{color:var(--brown-d)}
+  .smore{width:100%;border:1px dashed var(--line);background:var(--surface);border-radius:13px;
+    padding:14px;font-size:13.5px;font-weight:800;color:var(--ink-soft);cursor:pointer;margin-top:2px;letter-spacing:-.03em}
+  .sload{text-align:center;padding:30px 20px;color:var(--ink-soft)}
+  .sspin{width:30px;height:30px;border:3px solid var(--line);border-radius:50%;margin:0 auto 12px;animation:sspin .8s linear infinite}
+  .trip .sspin{border-top-color:var(--celadon)} .eat .sspin{border-top-color:var(--brown)}
+  @keyframes sspin{to{transform:rotate(360deg)}}
+  .serr{background:#FDECEC;border:1px solid #F5C6C6;color:#A63232;border-radius:12px;padding:13px 15px;font-size:13px;margin-top:14px}
+  #solo-sheet-body{padding:18px 20px 34px}
+  #solo-sheet-body h3{font-size:14px;font-weight:800;margin:16px 0 6px;letter-spacing:-.03em}
+  #solo-sheet-body h3:first-child{margin-top:0}
+  #solo-sheet-body p{font-size:14px;color:#3a463f;margin:0 0 9px;line-height:1.65}
+  #solo-sheet-body ul{margin:0 0 9px;padding-left:18px}
+  #solo-sheet-body li{font-size:14px;color:#3a463f;margin-bottom:5px}
+  .slinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .slinks a{flex:1;min-width:130px;text-align:center;text-decoration:none;font-size:13.5px;font-weight:700;padding:12px;border-radius:11px;border:1px solid var(--line);color:var(--ink)}
+  .slinks a:active{background:var(--surface)}
   .field input[type=text],.field input[type=date],.field select,.field textarea{
     width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
     background:var(--surface);letter-spacing:-.025em}
@@ -449,6 +511,48 @@
       </div>
       <div id="nearbybody"></div>
     </section>
+
+    <section class="view" id="v-solo">
+      <div class="solo-head">
+        <h2>1인석</h2>
+        <p class="solo-sub">혼자라서 더 좋은 여행과 식사</p>
+      </div>
+      <div class="solo-tabs">
+        <button class="solo-tab trip on" data-solo="trip"><span>🧭</span> 혼행 여행지</button>
+        <button class="solo-tab eat" data-solo="eat"><span>🍜</span> 혼밥 맛집</button>
+      </div>
+
+      <!-- 혼행 -->
+      <div class="solo-panel trip on" id="solo-trip">
+        <div class="sgrp">
+          <label class="sq">가고 싶은 지역 (직접 입력)</label>
+          <input class="stxt" id="st-area" placeholder="예: 강릉, 경주 보문단지, 순천만…">
+          <div class="shint">비워두면 아래에서 고른 지역으로 찾아드려요.</div>
+        </div>
+        <div class="sgrp"><label class="sq">지역 (시·도)</label><div class="schips" id="st-sido"></div></div>
+        <div class="sgrp"><label class="sq">어떤 여행이 좋아요?</label><div class="schips" id="st-style"></div></div>
+        <div class="sgrp"><label class="sq">예산은요?</label><div class="schips" id="st-budget"></div></div>
+        <div class="sgrp"><label class="sq">기간은요?</label><div class="schips" id="st-days"></div></div>
+        <button class="sgo trip" id="st-go">혼행 여행지 찾기</button>
+        <div class="sfoot">조건을 고르고 버튼을 누르면<br>혼자 떠나기 좋은 여행지를 골라드려요.</div>
+        <div class="sresults" id="st-results"></div>
+      </div>
+
+      <!-- 혼밥 -->
+      <div class="solo-panel eat" id="solo-eat">
+        <div class="sgrp">
+          <label class="sq">어느 동네에서 먹을까요?</label>
+          <input class="stxt" id="se-area" placeholder="예: 제주시 노형동, 강남역, 서면…">
+          <div class="shint">동네를 넣을수록 정확해요.</div>
+        </div>
+        <div class="sgrp"><label class="sq">뭐 먹고 싶어요?</label><div class="schips" id="se-food"></div></div>
+        <div class="sgrp"><label class="sq">혼밥 난이도는?</label><div class="schips" id="se-level"></div></div>
+        <div class="sgrp"><label class="sq">어떤 분위기로?</label><div class="schips" id="se-mood"></div></div>
+        <button class="sgo eat" id="se-go">혼밥 맛집 찾기</button>
+        <div class="sfoot">조건을 고르고 버튼을 누르면<br>혼자 먹기 편한 곳을 골라드려요.</div>
+        <div class="sresults" id="se-results"></div>
+      </div>
+    </section>
   </main>
 
   <div class="ad-slot" id="ad-profile" style="display:none">
@@ -462,6 +566,7 @@
   <nav class="tabbar">
     <button class="tab on" data-view="list"><span class="ic">🍚</span><span class="lb">목록</span></button>
     <button class="tab" data-view="nearby"><span class="ic">📍</span><span class="lb">지역맛집</span></button>
+    <button class="tab" data-view="solo"><span class="ic">🧭</span><span class="lb">1인석</span></button>
     <button class="tab" data-view="share"><span class="ic">🔗</span><span class="lb">공유</span></button>
     <button class="tab" data-view="profile"><span class="ic">👤</span><span class="lb">프로필</span></button>
   </nav>
@@ -469,6 +574,16 @@
 </div>
 
 <div class="scrim" id="scrim"></div>
+
+<!-- 1인석 상세 -->
+<div class="sheet" id="solo-sheet">
+  <div class="sheet-head">
+    <button id="solo-sheet-close">닫기</button>
+    <h2 id="solo-sheet-title">상세</h2>
+    <span style="width:36px"></span>
+  </div>
+  <div class="form" id="solo-sheet-body"></div>
+</div>
 
 <!-- 맛집 입력 -->
 <div class="sheet" id="sheet">
@@ -725,7 +840,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v56';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v61';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1248,6 +1363,182 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     paintNearby();
   });
 
+  /* ================= 1인석 (혼행·혼밥 추천) ================= */
+  // 혼밥: 카카오맵 검색(무료, 앱 내장 키).
+  // 혼행: Supabase Edge Function 'trip-reco'가 Gemini를 대신 호출합니다.
+  //       → Gemini 키는 서버(함수)에만 있고 앱 소스에는 없습니다(안전).
+  const TRIP_FN = sbBase()+'/functions/v1/trip-reco';
+  const SOLO = {
+    sido:'전국', style:'조용한 힐링', budget:'적당히', days:'1박 2일',
+    food:'아무거나', level:'처음이라 부담 없이', mood:'빠르게 한 끼'
+  };
+  const SOLO_OPTS = {
+    sido:['전국','서울','인천','경기','강원','충북','충남','대전','세종','전북','전남','광주','경북','대구','경남','부산','울산','제주'],
+    style:['조용한 힐링','자연·풍경','맛집 투어','문화·전시','액티비티','온천·휴식','바다·해변','도시 여행'],
+    budget:['가성비','적당히','여유롭게'],
+    days:['당일치기','1박 2일','2박 3일','길게'],
+    food:['아무거나','한식·백반','국밥·탕','면·분식','일식·초밥','고기·구이','카페·브런치','이자카야·술집'],
+    level:['처음이라 부담 없이','카운터석 있는 곳','1인 세트 되는 곳','상관없음'],
+    mood:['빠르게 한 끼','조용히 오래','분위기 좋게','가성비']
+  };
+  let soloInited=false;
+  let tripState={list:[]}, eatState={list:[]};
+
+  function soloChips(boxId, key){
+    const box=$('#'+boxId); if(!box) return;
+    box.innerHTML='';
+    SOLO_OPTS[key].forEach(v=>{
+      const b=el('button','schip'+(SOLO[key]===v?' on':''));
+      b.textContent=v;
+      b.onclick=()=>{ SOLO[key]=v; soloChips(boxId,key); };
+      box.appendChild(b);
+    });
+  }
+  function initSolo(){
+    if(soloInited) return; soloInited=true;
+    soloChips('st-sido','sido'); soloChips('st-style','style');
+    soloChips('st-budget','budget'); soloChips('st-days','days');
+    soloChips('se-food','food'); soloChips('se-level','level'); soloChips('se-mood','mood');
+    document.querySelectorAll('.solo-tab').forEach(t=>{
+      t.onclick=()=>{
+        const n=t.dataset.solo;
+        document.querySelectorAll('.solo-tab').forEach(x=>x.classList.toggle('on',x===t));
+        $('#solo-trip').classList.toggle('on', n==='trip');
+        $('#solo-eat').classList.toggle('on', n==='eat');
+      };
+    });
+    $('#st-go').onclick=()=>findTrip(false);
+    $('#se-go').onclick=()=>findEat(false);
+  }
+
+  // 혼행 추천: Supabase 함수 호출 (함수가 Gemini를 대신 부름, 키는 서버에 숨김)
+  async function tripReco(payload){
+    const r=await fetch(TRIP_FN,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':sbKey(),'Authorization':'Bearer '+sbKey()},
+      body:JSON.stringify(payload)
+    });
+    if(!r.ok){ if(r.status===404) throw new Error('NOFN'); throw new Error('FAIL'); }
+    const data=await r.json();
+    if(!Array.isArray(data.items)) throw new Error('FAIL');
+    return data.items;
+  }
+
+  async function findTrip(more){
+    const area=$('#st-area').value.trim();
+    const where=area || (SOLO.sido==='전국'?'전국 어디든':SOLO.sido);
+    if(!more) tripState.list=[];
+    renderSolo('trip', true);
+    try{
+      const items=await tripReco({
+        where, style:SOLO.style, budget:SOLO.budget, days:SOLO.days,
+        exclude:tripState.list.map(x=>x.name)
+      });
+      tripState.list=tripState.list.concat(items);
+      renderSolo('trip', false);
+    }catch(e){ soloError('trip', e.message); }
+  }
+
+  // 혼밥: 카카오맵 키워드 검색(무료). 실제 그 동네 식당이 나옵니다.
+  const FOOD_KW={'아무거나':'맛집','한식·백반':'한식','국밥·탕':'국밥','면·분식':'분식','일식·초밥':'일식','고기·구이':'고기집','카페·브런치':'카페','이자카야·술집':'이자카야'};
+  async function findEat(more){
+    const area=$('#se-area').value.trim();
+    if(!area){ $('#se-results').innerHTML='<div class="serr">동네를 입력해 주세요. 예: 제주시 노형동</div>'; $('#se-area').focus(); return; }
+    if(!more){ eatState.list=[]; eatState.page=1; } else { eatState.page=(eatState.page||1)+1; }
+    renderSolo('eat', true);
+    const kw=area+' '+(FOOD_KW[SOLO.food]||'맛집');
+    try{
+      const places=await kakaoKeyword(kw, eatState.page);
+      const items=places.map(p=>({
+        name:p.place_name,
+        where:(p.road_address_name||p.address_name||''),
+        tag:(p.category_name||'').split('>').pop().trim(),
+        desc:'',
+        catName:(p.category_name||'').split('>').pop().trim(),
+        url:p.place_url, lat:parseFloat(p.y), lng:parseFloat(p.x),
+        phone:p.phone||''
+      }));
+      // 중복 제거
+      const seen=new Set(eatState.list.map(x=>x.name));
+      eatState.list=eatState.list.concat(items.filter(x=>!seen.has(x.name)));
+      renderSolo('eat', false);
+    }catch(e){ soloError('eat', e.message); }
+  }
+
+  // 카카오 키워드 검색 Promise 래퍼
+  function kakaoKeyword(kw, page){
+    return new Promise((resolve,reject)=>{
+      if(!(window.kakao&&kakao.maps&&kakao.maps.services)) return reject(new Error('NOKAKAO'));
+      const ps=new kakao.maps.services.Places();
+      ps.keywordSearch(kw, (data,status)=>{
+        if(status===kakao.maps.services.Status.OK) resolve(data);
+        else if(status===kakao.maps.services.Status.ZERO_RESULT) resolve([]);
+        else reject(new Error('FAIL'));
+      }, {size:6, page:page||1});
+    });
+  }
+
+  function soloError(kind, code){
+    const box=$('#'+(kind==='trip'?'st':'se')+'-results');
+    let msg='추천을 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+    if(code==='NOFN') msg='혼행 추천이 아직 준비 중이에요. (서버 함수 배포 필요)';
+    if(code==='NOKAKAO') msg='지도를 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.';
+    if(code==='ZERO'||code==='EMPTY') msg='그 동네에서 결과를 찾지 못했어요. 동네나 메뉴를 바꿔 보세요.';
+    box.innerHTML='<div class="serr">'+msg+'</div>';
+  }
+
+  function renderSolo(kind, loading){
+    const st = kind==='trip'?tripState:eatState;
+    const box=$('#'+(kind==='trip'?'st':'se')+'-results');
+    let html='';
+    st.list.forEach((x,i)=>{
+      html+='<div class="srcard" data-k="'+kind+'" data-i="'+i+'">'+
+        '<div class="srtop"><div class="srname">'+esc(x.name)+'</div>'+
+        (x.tag?'<div class="srtag">'+esc(x.tag)+'</div>':'')+'</div>'+
+        (x.where?'<div class="srwhere">📍 '+esc(x.where)+'</div>':'')+
+        (x.desc?'<div class="srdesc">'+esc(x.desc)+'</div>':'')+
+        '<div class="srmore">자세히 보기 →</div></div>';
+    });
+    if(loading){
+      html+='<div class="sload"><div class="sspin"></div>'+(kind==='trip'?'혼자 떠나기 좋은 곳을 고르는 중…':'혼자 먹기 좋은 곳을 찾는 중…')+'</div>';
+    }else if(st.list.length){
+      html+='<button class="smore" data-k="'+kind+'">더 보기 →</button>';
+    }
+    box.innerHTML=html;
+    box.querySelectorAll('.srcard').forEach(c=>c.onclick=()=>openSoloSheet(kind, st.list[+c.dataset.i]));
+    const mb=box.querySelector('.smore'); if(mb) mb.onclick=()=>(kind==='trip'?findTrip(true):findEat(true));
+  }
+
+  function soloListify(s){
+    const parts=String(s||'').split(/[\n·]|,/).map(t=>t.trim()).filter(Boolean);
+    if(parts.length<=1) return '<p>'+esc(s)+'</p>';
+    return '<ul>'+parts.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
+  }
+  function openSoloSheet(kind, x){
+    const naver='https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(x.name+' '+(x.tag||x.where||''));
+    const kakao=x.url || ('https://map.kakao.com/?q='+encodeURIComponent(x.name+' '+(x.where||'')));
+    let h='';
+    if(x.where) h+='<p style="color:var(--ink-faint);font-size:13px">📍 '+esc(x.where)+'</p>';
+    if(x.desc) h+='<p>'+esc(x.desc)+'</p>';
+    if(kind==='trip'){
+      if(x.why){h+='<h3>혼자 가면 좋은 점</h3>'+soloListify(x.why);}
+      if(x.spots){h+='<h3>들러볼 만한 곳</h3>'+soloListify(x.spots);}
+      if(x.tip){h+='<h3>혼행 팁</h3>'+soloListify(x.tip);}
+    }else{
+      // 혼밥은 카카오 실데이터: 업종·연락처를 보여줍니다
+      if(x.tag){h+='<h3>업종</h3><p>'+esc(x.tag)+'</p>';}
+      if(x.phone){h+='<h3>전화</h3><p><a href="tel:'+esc(x.phone)+'">'+esc(x.phone)+'</a></p>';}
+      h+='<h3>혼밥 팁</h3><p>카운터석이나 1인 테이블이 있는지, 방문 전 지도·후기에서 확인해 보세요. 점심 오픈 직후나 피크 시간을 피하면 혼자서도 편하게 먹기 좋습니다.</p>';
+    }
+    h+='<div class="slinks"><a href="'+naver+'" target="_blank" rel="noopener">네이버 후기</a>'+
+       '<a href="'+kakao+'" target="_blank" rel="noopener">카카오맵에서 보기</a></div>';
+    $('#solo-sheet-title').textContent=x.name;
+    $('#solo-sheet-body').innerHTML=h;
+    $('#scrim').classList.add('on'); $('#solo-sheet').classList.add('on');
+  }
+  function closeSoloSheet(){ $('#scrim').classList.remove('on'); $('#solo-sheet').classList.remove('on'); }
+  $('#solo-sheet-close').onclick=closeSoloSheet;
+
   /* ================= 지도 ================= */
   const ZOOM={kakao:{wide:8,mid:5,close:2}, leaflet:{wide:11,mid:14,close:17}};
 
@@ -1350,6 +1641,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(v==='share') renderPick();
     if(v==='profile') renderProfile();
     if(v==='nearby') renderNearby(false);
+    if(v==='solo') initSolo();
     $('#fab').style.display = (v==='list'||v==='map') ? '' : 'none';
     $('#ad-profile').style.display = (v==='profile') ? '' : 'none';
     window.scrollTo(0,0);
