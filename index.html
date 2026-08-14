@@ -289,6 +289,11 @@
   .nb-rangewrap{display:flex;align-items:center;gap:12px;padding:2px 18px 14px}
   .nb-rangewrap input[type=range]{flex:1;accent-color:var(--celadon)}
   .nb-rangeval{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--celadon-deep);letter-spacing:-.02em;min-width:74px;text-align:right}
+  .nb-cats{display:flex;gap:7px;flex-wrap:wrap;padding:0 18px 14px}
+  .nb-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;
+    font-weight:700;color:var(--ink-soft);cursor:pointer;letter-spacing:-.02em;white-space:nowrap}
+  .nb-chip:active{transform:scale(.96)}
+  .nb-chip.on{background:var(--celadon);border-color:var(--celadon);color:#fff}
 
   /* ===== 나홀로 ===== */
   #v-solo{--brown:#B5741F;--brown-d:#8F5A14;--brown-soft:#F5ECDD}
@@ -596,6 +601,7 @@
         <input type="range" id="nb-range" min="1" max="50" step="1" value="10">
         <span class="nb-rangeval" id="nb-rangeval">10km 이내</span>
       </div>
+      <div class="nb-cats" id="nb-cats"></div>
       <div id="nearbybody"></div>
     </section>
 
@@ -916,7 +922,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v71';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v72';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1505,6 +1511,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   let nearbyState={ center:null, rows:null };   // 마지막 중심·불러온 데이터를 기억
 
   function nearbyRadius(){ return parseInt($('#nb-range').value,10)||10; }
+  let nearbyCat='all';   // 주변맛집 종류 필터
+
+  function renderNbCats(){
+    const box=$('#nb-cats'); if(!box) return;
+    const chips=[{id:'all',name:'전체',e:'🍽'}].concat(CATS);
+    box.innerHTML='';
+    chips.forEach(c=>{
+      const b=el('button','nb-chip'+(nearbyCat===c.id?' on':''));
+      b.innerHTML=(c.e?c.e+' ':'')+esc(c.name);
+      b.onclick=()=>{ nearbyCat=c.id; renderNbCats(); paintNearby(); };
+      box.appendChild(b);
+    });
+  }
 
   function paintNearby(){
     const box=$('#nearbybody');
@@ -1514,13 +1533,18 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const list=nearbyState.rows
       .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
       .filter(s=>s.dist<=radius)
+      .filter(s=>nearbyCat==='all' || s.cat===nearbyCat)
       .sort((a,b)=>a.dist-b.dist)
       .slice(0,80);
     if(!list.length){
       const total=nearbyState.rows.length;
+      const inRange=nearbyState.rows.filter(s=>distKm(center.lat,center.lng,s.lat,s.lng)<=radius).length;
       let hint;
       if(total===0){
         hint='아직 아무도 맛집을 공개하지 않았습니다.<br>맛집을 저장할 때 <b>주변맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.';
+      }else if(nearbyCat!=='all' && inRange>0){
+        // 반경 안에는 있는데 그 종류만 없음
+        hint='주변 '+radius+'km 안에 <b>'+cat(nearbyCat).name+'</b>은 아직 없습니다.<br>종류를 <b>전체</b>로 바꾸면 이 근처 '+inRange+'곳이 보입니다.';
       }else{
         // 데이터는 있는데 이 반경 밖 — 가장 가까운 곳까지 거리를 알려줍니다
         const nearest=nearbyState.rows
@@ -1579,6 +1603,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   async function renderNearby(useGeo){
     const box=$('#nearbybody');
+    renderNbCats();
     if(!cloudOn()){
       box.innerHTML='<div class="nb-empty">주변맛집은 로그인 후 쓸 수 있습니다.<br>프로필 탭에서 카카오로 로그인해 주세요.</div>';
       return;
