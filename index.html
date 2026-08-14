@@ -226,6 +226,10 @@
   .visit-item .vi-name:focus,.visit-item .vi-region:focus,.visit-item .vi-cat:focus{outline:none;color:var(--celadon-deep)}
   .visit-item .vi-date{font-size:11px;color:var(--ink-faint);flex:0 0 auto}
   .visit-item .vi-del{flex:0 0 auto;border:0;background:none;font-size:15px;color:var(--ink-faint);cursor:pointer;padding:4px}
+  .visit-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:10px}
+  .visit-pager .vp-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 14px;font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+  .visit-pager .vp-btn:disabled{opacity:.4;cursor:default}
+  .visit-pager .vp-now{font-size:12.5px;font-weight:700;color:var(--celadon-deep);min-width:44px;text-align:center}
   .pick-list{display:flex;flex-direction:column;gap:2px;margin:-2px 0 12px;max-height:300px;overflow:auto}
   .pick{display:flex;align-items:center;gap:9px;padding:8px 2px;font-size:14px;letter-spacing:-.025em}
   .pick input{width:17px;height:17px;accent-color:var(--celadon)}
@@ -912,7 +916,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v70';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v71';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1259,13 +1263,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   // 현재 위치를 잡아 지역·상호명·분류 자동 채움 후 저장
   function logVisit(){
     const btn=$('#visit-go'); if(btn){ btn.disabled=true; btn.textContent='위치 확인 중…'; }
-    const done=(ok,msg)=>{ if(btn){ btn.disabled=false; btn.textContent='📍 지금 여기 방문 저장'; } if(msg) toast(msg); if(ok) renderVisits(); };
+    const done=(ok,msg)=>{ if(btn){ btn.disabled=false; btn.textContent='📍 지금 여기 방문 저장'; } if(msg) toast(msg); if(ok){ visitPage=1; renderVisits(); } };
     if(!navigator.geolocation){ done(false,'이 기기는 위치를 지원하지 않습니다.'); return; }
     navigator.geolocation.getCurrentPosition(pos=>{
       const lat=pos.coords.latitude, lng=pos.coords.longitude;
       if(!(window.kakao&&kakao.maps&&kakao.maps.services)){
         // 지도 없으면 좌표만이라도 저장
-        addVisit({region:'', name:'', cat:'', lat, lng}); done(true,'위치를 저장했어요. (상호명은 나중에 채워 넣으세요)');
+        const added=addVisit({region:'', name:'', cat:'', lat, lng});
+        done(added, added?'위치를 저장했어요. (상호명은 나중에 채워 넣으세요)':'방금 그 자리는 이미 저장돼 있어요.');
         return;
       }
       // 근처 장소 검색으로 상호명·분류 추정
@@ -1283,18 +1288,34 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
             const r=res.find(x=>x.region_type==='H')||res[0];
             region=(r.region_2depth_name||'')+(r.region_3depth_name?' '+r.region_3depth_name:'');
           }
-          addVisit({region:region.trim(), name, cat:catName, lat, lng});
-          done(true, name?('저장: '+name):'위치를 저장했어요.');
+          const added=addVisit({region:region.trim(), name, cat:catName, lat, lng});
+          done(added, added ? (name?('저장: '+name):'위치를 저장했어요.') : ('이미 저장된 곳이에요'+(name?': '+name:'')));
         });
       }, {location:new kakao.maps.LatLng(lat,lng), radius:50, sort:kakao.maps.services.SortBy.DISTANCE, size:1});
     }, err=>{
       done(false, err.code===1?'위치 권한을 허용해 주세요.':'위치를 가져오지 못했어요.');
     }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
   }
+  // 두 좌표 거리(m)
+  function distM(a,b,c,d){
+    const R=6371000, t=x=>x*Math.PI/180;
+    const dp=t(c-a), dl=t(d-b);
+    const h=Math.sin(dp/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dl/2)**2;
+    return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+  }
+  // 이미 있는 곳이면 저장 안 함 (같은 상호명, 또는 좌표 30m 이내)
   function addVisit(v){
     const arr=loadVisits();
+    const nm=normStr(v.name);
+    const dup=arr.find(x=>{
+      if(nm && normStr(x.name)===nm) return true;
+      if(v.lat && x.lat && distM(v.lat,v.lng,x.lat,x.lng)<30) return true;
+      return false;
+    });
+    if(dup) return false;   // 중복이면 추가 안 함
     arr.unshift(Object.assign({id:uid(), at:Date.now()}, v));
     saveVisits(arr);
+    return true;
   }
   function deleteVisit(id){
     if(!confirm('이 방문 기록을 지울까요?')) return;
@@ -1326,12 +1347,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     document.head.appendChild(s);
   }
 
+  let visitPage=1;
+  const VISIT_PAGE_SIZE=5;
   function renderVisits(){
     const box=$('#visitlist'); if(!box) return;
     const arr=loadVisits();
     $('#visit-count').textContent = arr.length ? (arr.length+'곳 저장됨') : '';
     if(!arr.length){ box.innerHTML='<div class="visit-empty">아직 방문 기록이 없어요.<br>어떤 곳에 도착하면 위 버튼을 눌러 저장하세요.</div>'; return; }
-    box.innerHTML = arr.map(v=>{
+    const pages=Math.ceil(arr.length/VISIT_PAGE_SIZE);
+    if(visitPage>pages) visitPage=pages;
+    if(visitPage<1) visitPage=1;
+    const start=(visitPage-1)*VISIT_PAGE_SIZE;
+    const shown=arr.slice(start, start+VISIT_PAGE_SIZE);
+    let html=shown.map(v=>{
       const d=new Date(v.at); const ds=(d.getMonth()+1)+'/'+d.getDate();
       return '<div class="visit-item" data-id="'+v.id+'">'+
         '<div class="vi-main">'+
@@ -1345,6 +1373,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         '<button class="vi-del" aria-label="삭제">🗑</button>'+
       '</div>';
     }).join('');
+    if(pages>1){
+      html+='<div class="visit-pager">'+
+        '<button class="vp-btn" id="vp-prev"'+(visitPage<=1?' disabled':'')+'>‹ 이전</button>'+
+        '<span class="vp-now">'+visitPage+' / '+pages+'</span>'+
+        '<button class="vp-btn" id="vp-next"'+(visitPage>=pages?' disabled':'')+'>다음 ›</button>'+
+      '</div>';
+    }
+    box.innerHTML=html;
     box.querySelectorAll('.visit-item').forEach(it=>{
       const id=it.dataset.id;
       it.querySelectorAll('input').forEach(inp=>{
@@ -1352,6 +1388,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       });
       it.querySelector('.vi-del').onclick=()=>deleteVisit(id);
     });
+    const pv=$('#vp-prev'), nx=$('#vp-next');
+    if(pv) pv.onclick=()=>{ visitPage--; renderVisits(); };
+    if(nx) nx.onclick=()=>{ visitPage++; renderVisits(); };
   }
   // 프로필에 방문 기록 카드 HTML
   function visitCardHTML(){
