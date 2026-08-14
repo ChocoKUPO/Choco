@@ -206,7 +206,14 @@
   .btn-row{display:flex;gap:8px;margin-top:10px}
   .btn-row .btn{flex:1}
 
-  .pick-list{display:flex;flex-direction:column;gap:2px;margin:-4px 0 12px;max-height:220px;overflow:auto}
+  .share-filters{margin:2px 0 8px}
+  .share-f{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
+    background:var(--surface);font-size:14px;font-family:inherit;letter-spacing:-.025em}
+  .share-f:focus{outline:none;border-color:var(--celadon);background:#fff}
+  .share-frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .share-f.sm{padding:10px 11px;font-size:13.5px}
+  .pick-count{font-size:12.5px;color:var(--celadon-deep);font-weight:700;margin:4px 2px 8px;letter-spacing:-.02em}
+  .pick-list{display:flex;flex-direction:column;gap:2px;margin:-2px 0 12px;max-height:300px;overflow:auto}
   .pick{display:flex;align-items:center;gap:9px;padding:8px 2px;font-size:14px;letter-spacing:-.025em}
   .pick input{width:17px;height:17px;accent-color:var(--celadon)}
   .pick .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -509,10 +516,28 @@
     <section class="view" id="v-share">
       <div class="panel">
         <h3>내 목록 공유하기</h3>
-        <p>공유할 곳을 고르면 공유 코드가 만들어집니다. 코드를 카톡으로 보내면 상대가 그대로 가져갑니다.</p>
+        <p>지역·종류·별점으로 걸러서 원하는 맛집만 골라 공유하세요. 코드를 카톡으로 보내면 상대가 그대로 가져갑니다.</p>
+        <div class="share-filters">
+          <input type="text" id="pick-q" class="share-f" placeholder="🔍 이름·지역 검색 (예: 포항, 국밥)">
+          <div class="share-frow">
+            <select id="pick-cat" class="share-f sm">
+              <option value="all">전체 종류</option>
+              <option value="kor">한식</option><option value="jpn">일식</option>
+              <option value="chn">중식</option><option value="west">양식</option>
+              <option value="bun">분식</option><option value="cafe">카페</option>
+              <option value="bar">술집</option><option value="etc">기타</option>
+            </select>
+            <select id="pick-rate" class="share-f sm">
+              <option value="0">별점 전체</option>
+              <option value="5">★5</option><option value="4">★4 이상</option>
+              <option value="3">★3 이상</option>
+            </select>
+          </div>
+        </div>
+        <div class="pick-count" id="pick-count"></div>
         <div class="pick-list" id="picklist"></div>
         <div class="btn-row">
-          <button class="btn ghost" id="pickall">전체 선택</button>
+          <button class="btn ghost" id="pickall">보이는 것 전체 선택</button>
           <button class="btn green" id="makecode">공유 코드 만들기</button>
         </div>
         <div id="codewrap" style="display:none;margin-top:12px">
@@ -874,7 +899,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v68';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v69';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2400,28 +2425,67 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     s=s.trim().replace(/-/g,'+').replace(/_/g,'/');
     return new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)));
   }
+  // 공유 화면: 필터를 적용해 목록을 좁힙니다
+  function pickFiltered(){
+    const q=normStr($('#pick-q')?.value||'');
+    const fc=$('#pick-cat')?.value||'all';
+    const fr=parseInt($('#pick-rate')?.value||'0',10);
+    return state.places.filter(p=>{
+      if(fc!=='all' && p.cat!==fc) return false;
+      if(fr && (p.rating||0)<fr) return false;
+      if(q){
+        const hay=normStr((p.name||'')+' '+(p.addr||'')+' '+(p.memo||'')+' '+((p.tags||[]).join(' ')));
+        if(hay.indexOf(q)<0) return false;
+      }
+      return true;
+    });
+  }
   function renderPick(){
     const box=$('#picklist'); box.innerHTML='';
     if(!state.places.length){
       box.innerHTML='<p style="font-size:13px;color:var(--ink-faint);margin:6px 0 4px">먼저 맛집을 한 곳 저장해 주세요.</p>';
+      $('#pick-count').textContent='';
       return;
     }
-    state.places.forEach(p=>{
+    const arr=pickFiltered();
+    const cnt=$('#pick-count');
+    const selN=arr.filter(p=>picked.has(p.id)).length;
+    cnt.textContent='조건에 맞는 '+arr.length+'곳 중 '+selN+'곳 선택됨'+(picked.size>selN?' (다른 조건 포함 총 '+picked.size+'곳)':'');
+    if(!arr.length){
+      box.innerHTML='<p style="font-size:13px;color:var(--ink-faint);margin:6px 0 4px">조건에 맞는 맛집이 없습니다. 필터를 바꿔 보세요.</p>';
+      return;
+    }
+    arr.forEach(p=>{
       const row=el('label','pick'), cb=el('input');
       cb.type='checkbox'; cb.checked=picked.has(p.id);
-      cb.onchange=()=>{ cb.checked?picked.add(p.id):picked.delete(p.id); };
-      const nm=el('span','nm'); nm.textContent=cat(p.cat).e+' '+p.name;
+      cb.onchange=()=>{ cb.checked?picked.add(p.id):picked.delete(p.id); renderPickCount(); };
+      const nm=el('span','nm'); nm.textContent=cat(p.cat).e+' '+p.name+(p.addr?' · '+areaHint(p.addr):'');
       row.appendChild(cb); row.appendChild(nm); box.appendChild(row);
     });
   }
+  function renderPickCount(){
+    const arr=pickFiltered();
+    const selN=arr.filter(p=>picked.has(p.id)).length;
+    const cnt=$('#pick-count');
+    if(cnt) cnt.textContent='조건에 맞는 '+arr.length+'곳 중 '+selN+'곳 선택됨'+(picked.size>selN?' (다른 조건 포함 총 '+picked.size+'곳)':'');
+  }
   const selected=()=>state.places.filter(p=>picked.has(p.id));
+  // 필터 입력 시 목록 갱신
+  ['pick-q','pick-cat','pick-rate'].forEach(id=>{
+    const elm=$('#'+id); if(elm){ elm.addEventListener('input', renderPick); elm.addEventListener('change', renderPick); }
+  });
   $('#pickall').onclick=()=>{
-    picked=(picked.size===state.places.length)?new Set():new Set(state.places.map(p=>p.id));
+    // '보이는 것'(필터된 것)만 대상으로 전체선택/해제
+    const arr=pickFiltered();
+    const allSel=arr.length && arr.every(p=>picked.has(p.id));
+    if(allSel){ arr.forEach(p=>picked.delete(p.id)); }
+    else { arr.forEach(p=>picked.add(p.id)); }
     renderPick();
   };
   $('#makecode').onclick=()=>{
     const arr=selected();
     if(!arr.length){ toast('공유할 곳을 먼저 골라 주세요.'); return; }
+    if(arr.length>300 && !confirm(arr.length+'곳을 공유하면 코드가 매우 길어져 카톡 전송이 어려울 수 있어요.\n필터로 더 줄이는 게 좋습니다. 그래도 만들까요?')) return;
     $('#code').value='MISIK1:'+b64enc(JSON.stringify({v:1,from:'미식노트',at:Date.now(),places:arr}));
     $('#codewrap').style.display='block';
     toast(arr.length+'곳으로 코드를 만들었습니다.');
