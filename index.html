@@ -905,7 +905,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v73';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v74';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2160,13 +2160,27 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return (place.catName && place.catName.trim())
       || (kind && kind!=='기타' ? kind : (areaHint(place.addr) || '맛집'));
   }
+  // 도로명 주소 꼬리: "…구좌읍 종달로5길 3" → "종달로5길 3"
+  // (로/길 로 끝나는 도로명 토큰부터 뒤쪽 전부를 씁니다)
+  function roadTail(addr){
+    if(!addr) return '';
+    const toks=addr.trim().split(/\s+/);
+    const i=toks.findIndex(t=>/(로|길)\d*$/.test(t) || /(로|길)$/.test(t));
+    if(i>=0) return toks.slice(i).join(' ');
+    return '';
+  }
+  // 네이버 검색어: 상호 + 도로명 주소 (없으면 도시명으로 대체)
+  function naverQuery(place){
+    const tail = roadTail(place.addr) || areaHint(place.addr) || '';
+    return (place.name + ' ' + tail).trim();
+  }
   function naverBlogUrl(place){
-    const q = (place.name + ' ' + kindTail(place)).trim();
+    const q = naverQuery(place);
     return 'https://search.naver.com/search.naver?where=view&query='+encodeURIComponent(q);
   }
   function naverPlaceUrl(place){
-    // 이름 + 업종으로 검색하되, 좌표가 있으면 그 지점을 중심으로 열어 동명 가게와 안 섞이게 합니다.
-    const q = (place.name + ' ' + kindTail(place)).trim();
+    // 이름 + 도로명 주소로 검색하되, 좌표가 있으면 그 지점을 중심으로 열어 동명 가게와 안 섞이게 합니다.
+    const q = naverQuery(place);
     if(place.lat && place.lng){
       return 'https://map.naver.com/p/search/'+encodeURIComponent(q)+
              '?c='+place.lng+','+place.lat+',17,0,0,0,dh';
@@ -2194,6 +2208,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(p.addr) rows+='<div class="vrow"><span class="k">주소</span><span class="v">'+esc(p.addr)+'</span></div>';
     if(p.visited) rows+='<div class="vrow"><span class="k">방문일</span><span class="v">'+esc(p.visited)+'</span></div>';
     rows+='<div class="vrow"><span class="k">종류</span><span class="v">'+c.e+' '+c.name+'</span></div>';
+    if(p.catName && p.catName.trim()) rows+='<div class="vrow"><span class="k">세부 업종</span><span class="v">'+esc(p.catName.trim())+'</span></div>';
     if(p.url) rows+='<div class="vrow"><span class="k">지도</span><span class="v"><a href="'+esc(p.url)+'" target="_blank" rel="noopener">카카오맵에서 열기</a></span></div>';
 
     $('#viewbody').innerHTML =
