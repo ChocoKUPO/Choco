@@ -17,29 +17,33 @@
 
 <style>
   :root{
-    --paper:#F4F2EC; --surface:#FCFBF7;
-    --ink:#1C211E; --ink-soft:#5F6862; --ink-faint:#9AA29C;
-    --line:#E5E2D9;
-    --celadon:#3A6B5A; --celadon-deep:#294E41; --celadon-soft:#E7EDE8;
+    --paper:#F2F2F7; --surface:#FFFFFF;
+    --ink:#1C1C1E; --ink-soft:#636366; --ink-faint:#A1A1A6;
+    --line:#E3E3E8;
+    --celadon:#26AB5B; --celadon-deep:#1E8E4A; --celadon-soft:#E4F4EA;
     --yuja:#C69436; --brick:#A54B38;
     --kakao:#FEE500; --kakao-ink:#191600;
     --naver:#0F9E4E;
     --r-card:14px;
-    --shadow:0 1px 2px rgba(28,33,30,.04), 0 1px 1px rgba(28,33,30,.03);
-    --shadow-soft:0 1px 2px rgba(28,33,30,.04);
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 1px 1px rgba(0,0,0,.03);
+    --tabbar-bg:rgba(249,249,251,.82);
+    --fill:#E9E9EE;
+    --shadow-soft:0 1px 2px rgba(0,0,0,.04);
   }
   /* 시스템이 다크모드면 자동으로 어두운 화면 */
   @media (prefers-color-scheme: dark){
     :root{
-      --paper:#141816; --surface:#1C221F;
-      --ink:#E8EAE7; --ink-soft:#A7AEA9; --ink-faint:#6E756F;
-      --line:#2B322E;
-      --celadon:#6FAF97; --celadon-deep:#8Fc4ac; --celadon-soft:#233029;
+      --paper:#000000; --surface:#1C1C1E;
+      --ink:#F2F2F7; --ink-soft:#98989E; --ink-faint:#6A6A6E;
+      --line:#2C2C2E;
+      --celadon:#2FC46B; --celadon-deep:#54D384; --celadon-soft:#0E2A19;
       --yuja:#D9B05A; --brick:#D07862;
       --kakao:#FEE500; --kakao-ink:#191600;
       --naver:#33D17E;
-      --shadow:0 1px 2px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.25);
-      --shadow-soft:0 1px 2px rgba(0,0,0,.3);
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 1px 1px rgba(0,0,0,.3);
+      --tabbar-bg:rgba(18,18,20,.8);
+      --fill:#2C2C2E;
+      --shadow-soft:0 1px 2px rgba(0,0,0,.35);
     }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -58,11 +62,12 @@
   .topbar.scrolled{border-color:var(--line)}
   .brand{display:flex;align-items:center;gap:9px}
   .brand-logo{border-radius:7px;flex:0 0 auto;display:block}
-  .brand h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.045em}
+  .brand h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.05em}
   .brand .count{font-size:12px;font-weight:700;color:var(--celadon);background:var(--celadon-soft);
     padding:3px 9px;border-radius:999px;letter-spacing:-.02em}
   .brand .sp{margin-left:auto}
-  .brand .iconbtn{font-size:16px;opacity:.55;padding:2px 3px}
+  .brand .iconbtn{opacity:.5;padding:2px 3px;color:var(--ink);display:grid;place-items:center;background:none;border:0;cursor:pointer}
+  .brand .iconbtn:active{opacity:.8}
   .avatar{width:26px;height:26px;border-radius:50%;background:var(--celadon);color:#fff;
     display:grid;place-items:center;font-size:11px;font-weight:800;overflow:hidden;letter-spacing:-.02em}
   .avatar img{width:100%;height:100%;object-fit:cover}
@@ -77,16 +82,19 @@
   .view{display:none}
   .view.on{display:block}
 
-  .search{padding:4px 20px 10px}
-  .search input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;
-    background:var(--surface);letter-spacing:-.02em}
+  .search{padding:4px 20px 12px;position:relative}
+  .search-ic{position:absolute;left:31px;top:50%;transform:translateY(-50%);width:17px;height:17px;
+    color:var(--ink-faint);pointer-events:none;margin-top:-4px}
+  .search input{width:100%;padding:11px 14px 11px 38px;border:0;border-radius:11px;
+    background:var(--fill);letter-spacing:-.02em;font-size:15px;color:var(--ink)}
+  .search input:focus{outline:none;box-shadow:0 0 0 2px var(--celadon-soft)}
   .search input::placeholder{color:var(--ink-faint)}
   .chips{display:flex;gap:7px;overflow-x:auto;padding:2px 20px 12px;scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
   .chip{flex:0 0 auto;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
     background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-soft);
     letter-spacing:-.02em;white-space:nowrap}
-  .chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
 
   .toolbar{display:flex;justify-content:space-between;align-items:center;padding:0 20px 10px}
   .toolbar .n{font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em}
@@ -235,12 +243,15 @@
   .pick .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;
-    background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+    background:var(--tabbar-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-top:.5px solid var(--line);
     display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
-  .tab{padding:9px 0 11px;display:grid;justify-items:center;gap:3px;color:var(--ink-faint)}
-  .tab.on{color:var(--ink)}
-  .tab .ic{font-size:17px;line-height:1}
-  .tab .lb{font-size:10px;font-weight:700;letter-spacing:-.03em}
+  .tab{padding:8px 0 9px;display:grid;justify-items:center;gap:3px;color:var(--ink-faint);
+    background:none;border:0;cursor:pointer;transition:color .15s}
+  .tab .ti{width:25px;height:25px;display:block}
+  .tab.on{color:var(--celadon)}
+  .tab .lb{font-size:10px;font-weight:600;letter-spacing:-.02em}
+  .tab.on .lb{font-weight:700}
 
   .fab{position:fixed;bottom:calc(74px + env(safe-area-inset-bottom));z-index:41;
     left:50%;transform:translateX(-50%);margin-left:186px;width:54px;height:54px;border-radius:50%;
@@ -414,7 +425,7 @@
   .catgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
   .cat{padding:9px 2px;border-radius:11px;background:var(--surface);border:1px solid var(--line);
     display:grid;justify-items:center;gap:3px;font-size:11.5px;font-weight:650;letter-spacing:-.02em;color:var(--ink-soft)}
-  .cat.on{border-color:var(--ink);background:var(--ink);color:#fff}
+  .cat.on{border-color:var(--ink);background:var(--ink);color:var(--surface)}
   .cat .e{font-size:16px;line-height:1}
   #pickmap{height:180px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#DFE5DF}
   .coord{margin-top:6px;font-size:11.5px;color:var(--ink-faint);letter-spacing:-.02em}
@@ -475,6 +486,18 @@
   .prof-hero .em{font-size:13px;color:var(--ink-faint);margin-top:3px;letter-spacing:-.02em}
   .prof-hero .badge{margin-top:9px}
   .prof-stats{display:flex;gap:10px;margin:18px 0}
+  /* 애플 그룹 리스트 */
+  .glist-h{font-size:12.5px;font-weight:600;color:var(--ink-faint);letter-spacing:-.01em;
+    text-transform:none;padding:2px 4px 7px;margin-top:8px}
+  .glist{background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .grow{display:flex;align-items:center;gap:12px;width:100%;padding:13px 15px;border:0;background:none;
+    cursor:pointer;text-align:left;position:relative}
+  .grow:not(:last-child)::after{content:"";position:absolute;left:47px;right:0;bottom:0;height:.5px;background:var(--line)}
+  .grow:active{background:var(--fill)}
+  .grow .gi{flex:0 0 auto;color:var(--celadon);display:grid;place-items:center}
+  .grow .gt{flex:1;font-size:15.5px;color:var(--ink);letter-spacing:-.02em}
+  .grow .gc{flex:0 0 auto;color:var(--ink-faint)}
+  .glist-note{font-size:12.5px;color:var(--ink-faint);line-height:1.6;padding:9px 4px 0;letter-spacing:-.01em}
   .prof-stat{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:14px;
     padding:14px 10px;text-align:center}
   .prof-stat .num{font-size:22px;font-weight:800;letter-spacing:-.04em;color:var(--celadon-deep)}
@@ -494,14 +517,14 @@
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   /* 다크모드 전용 요소 보정 — 잉크색 배경이 밝아지며 생기는 흰배경+흰글씨 방지 (규칙 순서상 맨 끝에 둠) */
   @media (prefers-color-scheme: dark){
-    .chip.on{background:var(--celadon-deep);border-color:var(--celadon-deep);color:#0F1512}
-    .btn{background:var(--celadon-deep);color:#0F1512}
+    .chip.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+    .btn{background:var(--celadon);color:#fff}
     .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
-    .btn.green{background:var(--celadon);color:#0F1512}
-    .btn.nv{background:var(--naver);color:#0F1512}
-    .cat.on{background:var(--celadon-deep);border-color:var(--celadon-deep);color:#0F1512}
-    .toast{background:#0B0F0D;color:var(--ink)}
-    .avatar{color:#0F1512}
+    .btn.green{background:var(--celadon);color:#fff}
+    .btn.nv{background:var(--naver);color:#fff}
+    .cat.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+    .toast{background:#2C2C2E;color:var(--ink)}
+    .avatar{color:#fff}
   }
 </style>
 
@@ -512,7 +535,7 @@
       <h1>대한민국 어디까지</h1>
       <span class="count" id="count">0곳</span>
       <span class="sp"></span>
-      <button class="iconbtn" id="gear" aria-label="설정">⚙</button>
+      <button class="iconbtn" id="gear" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" width="19" height="19"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4M18.7 18.7l-1.4-1.4M6.7 6.7 5.3 5.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
       <button class="avatar" id="me" aria-label="프로필" style="display:none">?</button>
     </div>
     <p class="tagline"><span class="syncdot off" id="syncdot"></span><span id="synctext">이 기기에 저장 중</span></p>
@@ -520,7 +543,7 @@
 
   <main>
     <section class="view on" id="v-list">
-      <div class="search"><input type="text" id="q" placeholder="가게 이름, 메모, 태그 검색"></div>
+      <div class="search"><svg class="search-ic" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><input type="text" id="q" placeholder="가게 이름, 메모, 태그 검색"></div>
       <div class="chips" id="catchips"></div>
       <div class="toolbar">
         <span class="n" id="listcount"></span>
@@ -667,11 +690,21 @@
   </div>
 
   <nav class="tabbar">
-    <button class="tab on" data-view="list"><span class="ic">🍚</span><span class="lb">목록</span></button>
-    <button class="tab" data-view="nearby"><span class="ic">📍</span><span class="lb">주변맛집</span></button>
-    <button class="tab" data-view="solo"><span class="ic">🧭</span><span class="lb">나홀로</span></button>
-    <button class="tab" data-view="share"><span class="ic">🔗</span><span class="lb">공유</span></button>
-    <button class="tab" data-view="profile"><span class="ic">👤</span><span class="lb">프로필</span></button>
+    <button class="tab on" data-view="list" aria-label="목록">
+      <svg class="ti" viewBox="0 0 24 24" fill="none"><path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/></svg>
+      <span class="lb">목록</span></button>
+    <button class="tab" data-view="nearby" aria-label="주변맛집">
+      <svg class="ti" viewBox="0 0 24 24" fill="none"><path d="M12 21c4.5-4.2 7-7.6 7-11a7 7 0 1 0-14 0c0 3.4 2.5 6.8 7 11Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.7"/></svg>
+      <span class="lb">주변맛집</span></button>
+    <button class="tab" data-view="solo" aria-label="나홀로">
+      <svg class="ti" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span class="lb">나홀로</span></button>
+    <button class="tab" data-view="share" aria-label="공유">
+      <svg class="ti" viewBox="0 0 24 24" fill="none"><path d="M9.5 13.5 14 9M10 6.5 11.8 4.7a3.3 3.3 0 0 1 4.7 4.7l-1.8 1.8M14 17.5l-1.8 1.8a3.3 3.3 0 0 1-4.7-4.7l1.8-1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span class="lb">공유</span></button>
+    <button class="tab" data-view="profile" aria-label="프로필">
+      <svg class="ti" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c.7-3.3 3.5-5 7-5s6.3 1.7 7 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span class="lb">프로필</span></button>
   </nav>
   <button class="fab" id="fab" aria-label="맛집 추가">+</button>
 </div>
@@ -921,6 +954,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
 <script>
 (function(){
+  // 선 아이콘 모음 (애플 스타일 SVG)
+  const icon = {
+    chev: '<svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    sync: '<svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.6L4 16M4 20v-4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    out: '<svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    fork: '<svg viewBox="0 0 24 24" fill="none" width="40" height="40"><path d="M7 3v7a2 2 0 0 0 4 0V3M9 3v18M17 3c-1.5 0-2.5 2-2.5 5s1 4 2.5 4v9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
+
   const CATS = [
     {id:'kor', name:'한식', e:'🍚', c:'#2F6B57'},
     {id:'jpn', name:'일식', e:'🍣', c:'#3B6E8C'},
@@ -932,7 +973,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v76';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v79';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1276,21 +1317,18 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
             '<div class="pic">'+pic+'</div>'+
             '<div class="nm">'+esc(u.name||'미식가')+'</div>'+
             (u.email?'<div class="em">'+esc(u.email)+'</div>':'')+
-            '<span class="badge kakao">● 카카오 로그인</span>'+
           '</div>'+
           '<div class="prof-stats">'+
             '<div class="prof-stat"><div class="num">'+state.places.length+'</div><div class="lb">저장한 곳</div></div>'+
             '<div class="prof-stat"><div class="num">'+rated+'</div><div class="lb">★4 이상</div></div>'+
             '<div class="prof-stat"><div class="num">'+withLoc+'</div><div class="lb">위치 있음</div></div>'+
           '</div>'+
-          '<div class="panel" style="margin:0 0 12px">'+
-            '<h3>계정</h3>'+
-            '<p style="margin:0 0 12px">저장한 맛집이 내 계정에 보관됩니다. 다른 기기에서 카카오로 로그인하면 그대로 나타납니다.</p>'+
-            '<div class="btn-row">'+
-              '<button class="btn green" id="p-sync">지금 동기화</button>'+
-              '<button class="btn ghost" id="p-signout">로그아웃</button>'+
-            '</div>'+
+          '<div class="glist-h">계정</div>'+
+          '<div class="glist">'+
+            '<button class="grow" id="p-sync"><span class="gi">'+icon.sync+'</span><span class="gt">지금 동기화</span><span class="gc">'+icon.chev+'</span></button>'+
+            '<button class="grow" id="p-signout"><span class="gi">'+icon.out+'</span><span class="gt">로그아웃</span><span class="gc">'+icon.chev+'</span></button>'+
           '</div>'+
+          '<div class="glist-note">저장한 맛집이 내 계정에 보관됩니다. 다른 기기에서 카카오로 로그인하면 그대로 나타납니다.</div>'+
         '</div>';
       $('#p-sync').onclick=async()=>{
         setSync('busy');
@@ -1309,7 +1347,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     }else{
       box.innerHTML =
         '<div class="prof-login">'+
-          '<div class="mk">🥢</div>'+
+          '<div class="mk">'+icon.fork+'</div>'+
           '<h2>로그인하고 어디서든 내 맛집</h2>'+
           '<p>카카오로 로그인하면 저장한 맛집이 내 계정에 보관됩니다.<br>기기를 바꿔도, 앱을 지워도 그대로 남습니다.</p>'+
           (cloudOn()?'':'<div class="prof-warn">로그인 서버가 아직 연결되지 않았습니다. 관리자 설정에서 Supabase를 연결하면 로그인이 켜집니다. 그전까지는 이 기기에만 저장됩니다.</div>')+
