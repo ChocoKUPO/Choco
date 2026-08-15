@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <meta name="google-adsense-account" content="ca-pub-1402923836700071">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1402923836700071" crossorigin="anonymous"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>대한민국 어디까지 — 내 맛집 지도</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
@@ -905,7 +906,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v74';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v75';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1222,7 +1223,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   }
 
   /* ================= 광고 (프로필 상단 배너) ================= */
-  let adsLoaded=false;
   function loadAd(){
     if(!ADSENSE_CLIENT || !ADSENSE_SLOT) return;   // 값이 없으면 '광고 자리' 안내 그대로
     const body=$('#ad-profile-body'); if(!body) return;
@@ -1231,14 +1231,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     body.innerHTML='<ins class="adsbygoogle" style="display:block" '+
       'data-ad-client="'+ADSENSE_CLIENT+'" data-ad-slot="'+ADSENSE_SLOT+'" '+
       'data-ad-format="auto" data-full-width-responsive="true"></ins>';
-    // 애드센스 스크립트는 한 번만 로드
-    if(!adsLoaded){
-      adsLoaded=true;
-      const s=document.createElement('script');
-      s.async=true; s.crossOrigin='anonymous';
-      s.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+ADSENSE_CLIENT;
-      document.head.appendChild(s);
-    }
+    // 애드센스 스크립트는 head에서 이미 로드되므로 여기선 광고만 요청
     try{ (window.adsbygoogle=window.adsbygoogle||[]).push({}); }catch(e){}
   }
 
