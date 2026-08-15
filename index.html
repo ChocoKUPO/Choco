@@ -17,15 +17,30 @@
 
 <style>
   :root{
-    --paper:#E7EBE6; --surface:#FFFFFF;
-    --ink:#131A17; --ink-soft:#5E6B64; --ink-faint:#93A099;
-    --line:#DBE2DB;
-    --celadon:#2F6B57; --celadon-deep:#1F4C3D; --celadon-soft:#E1EBE5;
-    --yuja:#D9A227; --brick:#B4432F;
+    --paper:#F4F2EC; --surface:#FCFBF7;
+    --ink:#1C211E; --ink-soft:#5F6862; --ink-faint:#9AA29C;
+    --line:#E5E2D9;
+    --celadon:#3A6B5A; --celadon-deep:#294E41; --celadon-soft:#E7EDE8;
+    --yuja:#C69436; --brick:#A54B38;
     --kakao:#FEE500; --kakao-ink:#191600;
-    --naver:#03C75A;
-    --r-card:16px;
-    --shadow:0 1px 2px rgba(19,26,23,.06), 0 8px 24px rgba(19,26,23,.06);
+    --naver:#0F9E4E;
+    --r-card:14px;
+    --shadow:0 1px 2px rgba(28,33,30,.04), 0 1px 1px rgba(28,33,30,.03);
+    --shadow-soft:0 1px 2px rgba(28,33,30,.04);
+  }
+  /* 시스템이 다크모드면 자동으로 어두운 화면 */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#141816; --surface:#1C221F;
+      --ink:#E8EAE7; --ink-soft:#A7AEA9; --ink-faint:#6E756F;
+      --line:#2B322E;
+      --celadon:#6FAF97; --celadon-deep:#8Fc4ac; --celadon-soft:#233029;
+      --yuja:#D9B05A; --brick:#D07862;
+      --kakao:#FEE500; --kakao-ink:#191600;
+      --naver:#33D17E;
+      --shadow:0 1px 2px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.25);
+      --shadow-soft:0 1px 2px rgba(0,0,0,.3);
+    }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
@@ -210,7 +225,7 @@
   .share-filters{margin:2px 0 8px}
   .share-f{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
     background:var(--surface);font-size:14px;font-family:inherit;letter-spacing:-.025em}
-  .share-f:focus{outline:none;border-color:var(--celadon);background:#fff}
+  .share-f:focus{outline:none;border-color:var(--celadon);background:var(--surface)}
   .share-frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .share-f.sm{padding:10px 11px;font-size:13.5px}
   .pick-count{font-size:12.5px;color:var(--celadon-deep);font-weight:700;margin:4px 2px 8px;letter-spacing:-.02em}
@@ -274,7 +289,7 @@
   .nb-rangewrap input[type=range]{flex:1;accent-color:var(--celadon)}
   .nb-rangeval{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--celadon-deep);letter-spacing:-.02em;min-width:74px;text-align:right}
   .nb-cats{display:flex;gap:7px;flex-wrap:wrap;padding:0 18px 14px}
-  .nb-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;
+  .nb-chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:12.5px;
     font-weight:700;color:var(--ink-soft);cursor:pointer;letter-spacing:-.02em;white-space:nowrap}
   .nb-chip:active{transform:scale(.96)}
   .nb-chip.on{background:var(--celadon);border-color:var(--celadon);color:#fff}
@@ -288,7 +303,7 @@
     border:1px solid var(--line);border-radius:14px;padding:5px;margin:0 14px 16px}
   .solo-tab{border:0;background:none;padding:12px 6px;border-radius:10px;font-size:14px;font-weight:800;
     color:var(--ink-faint);cursor:pointer;letter-spacing:-.03em}
-  .solo-tab.on{background:#fff;box-shadow:var(--shadow)}
+  .solo-tab.on{background:var(--surface);box-shadow:var(--shadow)}
   .solo-tab.on.trip{color:var(--celadon-deep)}
   .solo-tab.on.eat{color:var(--brown-d)}
   .solo-panel{display:none;padding:0 14px}
@@ -298,10 +313,10 @@
   .shint{font-size:11.5px;color:var(--ink-faint);margin:7px 2px 0}
   .stxt{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:15px;
     font-family:inherit;color:var(--ink);background:var(--surface)}
-  .stxt:focus{outline:none;border-color:var(--celadon);background:#fff}
+  .stxt:focus{outline:none;border-color:var(--celadon);background:var(--surface)}
   .eat .stxt:focus{border-color:var(--brown)}
   .schips{display:flex;flex-wrap:wrap;gap:7px}
-  .schip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 15px;
+  .schip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 15px;
     font-size:13px;font-weight:700;color:var(--ink-soft);cursor:pointer;letter-spacing:-.02em}
   .schip:active{transform:scale(.96)}
   .trip .schip.on{background:var(--celadon);border-color:var(--celadon);color:#fff}
@@ -312,7 +327,7 @@
   .sgo:disabled{opacity:.55}
   .sfoot{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:18px;line-height:1.7}
   .sresults{margin-top:18px}
-  .srcard{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px 15px;
+  .srcard{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:15px 15px;
     box-shadow:var(--shadow);margin-bottom:11px;cursor:pointer}
   .srcard:active{transform:scale(.99)}
   .srtop{display:flex;align-items:flex-start;gap:9px}
@@ -477,6 +492,17 @@
     transition:.22s;max-width:88%;text-align:center;line-height:1.4}
   .toast.on{opacity:1;transform:translate(-50%,0)}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  /* 다크모드 전용 요소 보정 — 잉크색 배경이 밝아지며 생기는 흰배경+흰글씨 방지 (규칙 순서상 맨 끝에 둠) */
+  @media (prefers-color-scheme: dark){
+    .chip.on{background:var(--celadon-deep);border-color:var(--celadon-deep);color:#0F1512}
+    .btn{background:var(--celadon-deep);color:#0F1512}
+    .btn.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+    .btn.green{background:var(--celadon);color:#0F1512}
+    .btn.nv{background:var(--naver);color:#0F1512}
+    .cat.on{background:var(--celadon-deep);border-color:var(--celadon-deep);color:#0F1512}
+    .toast{background:#0B0F0D;color:var(--ink)}
+    .avatar{color:#0F1512}
+  }
 </style>
 
 <div class="app">
@@ -906,7 +932,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v75';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v76';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
