@@ -60,15 +60,16 @@
   .topbar{position:sticky;top:0;z-index:30;background:var(--paper);padding:18px 20px 12px;
     border-bottom:1px solid transparent;transition:border-color .2s}
   .topbar.scrolled{border-color:var(--line)}
-  .brand{display:flex;align-items:center;gap:9px}
+  .brand{display:flex;align-items:center;gap:8px}
   .brand-logo{border-radius:7px;flex:0 0 auto;display:block}
-  .brand h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.05em}
-  .brand .count{font-size:12px;font-weight:700;color:var(--celadon);background:var(--celadon-soft);
-    padding:3px 9px;border-radius:999px;letter-spacing:-.02em}
-  .brand .sp{margin-left:auto}
-  .brand .iconbtn{opacity:.5;padding:2px 3px;color:var(--ink);display:grid;place-items:center;background:none;border:0;cursor:pointer}
+  .brand h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.05em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .brand .count{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--celadon);background:var(--celadon-soft);
+    padding:3px 9px;border-radius:999px;letter-spacing:-.02em;white-space:nowrap}
+  .brand .sp{margin-left:auto;flex:0 0 auto;width:0}
+  .brand .iconbtn{flex:0 0 auto;opacity:.5;padding:2px 3px;color:var(--ink);display:grid;place-items:center;background:none;border:0;cursor:pointer}
   .brand .iconbtn:active{opacity:.8}
-  .avatar{width:26px;height:26px;border-radius:50%;background:var(--celadon);color:#fff;
+  .avatar{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--celadon);color:#fff;
     display:grid;place-items:center;font-size:11px;font-weight:800;overflow:hidden;letter-spacing:-.02em}
   .avatar img{width:100%;height:100%;object-fit:cover}
   .brand .tagline{margin:2px 0 0;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em;
@@ -515,6 +516,16 @@
     transition:.22s;max-width:88%;text-align:center;line-height:1.4}
   .toast.on{opacity:1;transform:translate(-50%,0)}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  /* 좁은 폰에서 헤더가 두 줄로 밀리지 않게 */
+  @media (max-width:400px){
+    .brand h1{font-size:19px}
+    .topbar{padding:16px 16px 10px}
+    .brand{gap:7px}
+  }
+  @media (max-width:340px){
+    .brand h1{font-size:17px}
+    .brand .count{font-size:11px;padding:2px 7px}
+  }
   /* 다크모드 전용 요소 보정 — 잉크색 배경이 밝아지며 생기는 흰배경+흰글씨 방지 (규칙 순서상 맨 끝에 둠) */
   @media (prefers-color-scheme: dark){
     .chip.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
@@ -973,7 +984,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v79';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v80';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
