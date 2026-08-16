@@ -1003,7 +1003,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v83';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v84';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1415,7 +1415,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return SEOUL;
   }
 
-  let nearbyState={ center:null, rows:null };   // 마지막 중심·불러온 데이터를 기억
+  let nearbyState={ center:null, rows:null, sido:"" };   // 마지막 중심·불러온 데이터를 기억
 
   let nearbyCat='all';   // 주변맛집 종류 필터
 
@@ -1438,18 +1438,23 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(!nearbyState.center || !Array.isArray(nearbyState.rows)){ return; }
     const center=nearbyState.center;
     const mine=session&&session.user?session.user.id:null;
-    // 거리 제한 없이, 내 위치에서 가까운 순으로 전부 정렬
+    const mySido=nearbyState.sido||'';
+    // 같은 시/도만 + 내 위치에서 가까운 순
     const list=nearbyState.rows
       .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
+      .filter(s=>!mySido || addrSido(s.addr)===mySido)
       .filter(s=>nearbyCat==='all' || s.cat===nearbyCat)
       .sort((a,b)=>a.dist-b.dist);
     if(!list.length){
       const total=nearbyState.rows.length;
+      const sidoName=mySido||'이 지역';
       let hint;
       if(total===0){
         hint='아직 아무도 맛집을 공개하지 않았습니다.<br>맛집을 저장할 때 <b>주변맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.';
+      }else if(nearbyCat!=='all'){
+        hint='<b>'+sidoName+'</b>에 공개된 <b>'+cat(nearbyCat).name+'</b> 맛집이 아직 없습니다.<br>종류를 <b>전체</b>로 바꿔 보세요.';
       }else{
-        hint='공개된 <b>'+cat(nearbyCat).name+'</b> 맛집이 아직 없습니다.<br>종류를 <b>전체</b>로 바꾸면 공개된 '+total+'곳이 보입니다.';
+        hint='<b>'+sidoName+'</b>에는 아직 공개된 맛집이 없습니다.<br>이 지역에서 맛집을 저장하고 <b>주변맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.';
       }
       box.innerHTML='<div class="nb-empty">'+hint+'</div>';
       return;
@@ -1498,14 +1503,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   async function loadNearby(center, label){
     const box=$('#nearbybody'), sub=$('#nearby-sub');
     sub.textContent=label;
-    // 잡힌 위치가 어느 동네인지 표시해, 위치가 엉뚱하게 잡혔는지 바로 알 수 있게 합니다
+    let mySido='';
+    // 잡힌 위치의 시/도를 구합니다 (같은 시/도만 보여주기 위함)
     if(provider==='kakao' && window.kakao && kakao.maps.services){
       try{
-        new kakao.maps.services.Geocoder().coord2RegionCode(center.lng, center.lat, (res, status)=>{
-          if(status===kakao.maps.services.Status.OK && res && res[0]){
-            const rg=(res.find(r=>r.region_type==='H')||res[0]);
-            sub.textContent=label+' · 기준 위치: '+rg.address_name;
-          }
+        await new Promise(resolve=>{
+          new kakao.maps.services.Geocoder().coord2RegionCode(center.lng, center.lat, (res, status)=>{
+            if(status===kakao.maps.services.Status.OK && res && res[0]){
+              const rg=(res.find(r=>r.region_type==='H')||res[0]);
+              mySido=normSido(rg.region_1depth_name||'');
+              sub.textContent=label+' · 기준 위치: '+rg.address_name;
+            }
+            resolve();
+          });
         });
       }catch(e){}
     }
@@ -1515,8 +1525,28 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       box.innerHTML='<div class="nb-empty">맛집을 불러오지 못했습니다.<br>서버 준비(spots 테이블)가 안 됐거나 잠시 연결이 끊긴 경우입니다. 잠시 뒤 다시 시도해 주세요.</div>';
       return;
     }
-    nearbyState={ center, rows };
+    nearbyState={ center, rows, sido:mySido };
+    nearbyPage=1;
     paintNearby();
+  }
+
+  // 시/도 이름 표준화 (경상북도→경북, 서울특별시→서울 등) — 주소 앞부분과 맞추기 위함
+  function normSido(name){
+    const s=(name||'').replace(/\s/g,'');
+    const map={'서울특별시':'서울','부산광역시':'부산','대구광역시':'대구','인천광역시':'인천',
+      '광주광역시':'광주','대전광역시':'대전','울산광역시':'울산','세종특별자치시':'세종',
+      '경기도':'경기','강원특별자치도':'강원','강원도':'강원','충청북도':'충북','충청남도':'충남',
+      '전라북도':'전북','전북특별자치도':'전북','전라남도':'전남','경상북도':'경북','경상남도':'경남',
+      '제주특별자치도':'제주','제주도':'제주'};
+    if(map[s]) return map[s];
+    // 이미 짧은 형태거나 기타
+    return s.replace(/특별자치도|특별시|광역시|특별자치시|도$/,'').slice(0,2);
+  }
+  // 주소 문자열에서 시/도 추출
+  function addrSido(addr){
+    if(!addr) return '';
+    const first=addr.trim().split(/\s+/)[0]||'';
+    return normSido(first);
   }
 
   async function renderNearby(useGeo){
@@ -1965,11 +1995,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const s=catName||'';
     if(groupCode==='CE7'||/카페|디저트|베이커리|제과|빵/.test(s)) return 'cafe';
     if(/술집|주점|호프|이자카야|와인|포장마차/.test(s)) return 'bar';
-    if(/일식|초밥|스시|돈까스|라멘|우동|규동/.test(s)) return 'jpn';
-    if(/중식|중국/.test(s)) return 'chn';
-    if(/양식|이탈리|파스타|피자|스테이크|프렌치|멕시칸|햄버거/.test(s)) return 'west';
-    if(/분식|떡볶이|김밥/.test(s)) return 'bun';
-    if(/한식|고기|국밥|찌개|백반|해물|해산물|족발|보쌈|치킨/.test(s)) return 'kor';
+    // 해물·생선요리(우럭·물회·매운탕·조개 등)는 한식으로 먼저 판정 — 일식(회)으로 밀리지 않게
+    if(/해물|해산물|생선|물회|매운탕|지리|조개|낙지|주꾸미|문어|우럭|광어|아구|대게|게요리|해장국|추어탕|장어|복어|굴|전복/.test(s)) return 'kor';
+    // 진짜 일식만 일식으로 (초밥·스시·돈까스·라멘 등)
+    if(/일식|초밥|스시|사시미|롤|돈까스|돈가스|라멘|라면집|우동|규동|텐동|가츠|오마카세/.test(s)) return 'jpn';
+    if(/중식|중국|짜장|짬뽕|마라/.test(s)) return 'chn';
+    if(/양식|이탈리|파스타|피자|스테이크|프렌치|멕시칸|햄버거|브런치/.test(s)) return 'west';
+    if(/분식|떡볶이|김밥|순대|튀김/.test(s)) return 'bun';
+    if(/한식|고기|국밥|찌개|백반|족발|보쌈|치킨|삼겹|갈비|냉면|칼국수|한정식|쌈밥|비빔밥/.test(s)) return 'kor';
     return 'etc';
   }
   function renderCats(){
