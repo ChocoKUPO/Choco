@@ -297,9 +297,6 @@
   .nb-empty{margin:20px 16px;padding:22px 16px;text-align:center;background:var(--surface);
     border:1px dashed var(--line);border-radius:14px;font-size:13px;color:var(--ink-faint);line-height:1.7;letter-spacing:-.02em}
   .nb-loading{margin:24px;text-align:center;font-size:13px;color:var(--ink-faint)}
-  .nb-rangewrap{display:flex;align-items:center;gap:12px;padding:2px 18px 14px}
-  .nb-rangewrap input[type=range]{flex:1;accent-color:var(--celadon)}
-  .nb-rangeval{flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--celadon-deep);letter-spacing:-.02em;min-width:74px;text-align:right}
   .nb-cats{display:flex;gap:7px;flex-wrap:wrap;padding:0 18px 14px}
   .nb-chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:12.5px;
     font-weight:700;color:var(--ink-soft);cursor:pointer;letter-spacing:-.02em;white-space:nowrap}
@@ -637,14 +634,10 @@
 
     <section class="view" id="v-nearby">
       <div class="nearby-head">
-        <h2>내 근처 주변맛집</h2>
-        <button class="btn ghost sm" id="nearby-refresh">📍 내 위치</button>
+        <h2>주변맛집</h2>
+        <button class="btn ghost sm" id="nearby-refresh">내 위치 새로고침</button>
       </div>
-      <p class="nearby-sub" id="nearby-sub">주변에서 다른 사람들이 공개한 맛집입니다.</p>
-      <div class="nb-rangewrap">
-        <input type="range" id="nb-range" min="1" max="50" step="1" value="10">
-        <span class="nb-rangeval" id="nb-rangeval">10km 이내</span>
-      </div>
+      <p class="nearby-sub" id="nearby-sub">내 위치에서 가까운 순으로, 다른 사람들이 공개한 맛집입니다.</p>
       <div class="nb-cats" id="nb-cats"></div>
       <div id="nearbybody"></div>
     </section>
@@ -984,7 +977,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v80';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v81';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1398,7 +1391,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   let nearbyState={ center:null, rows:null };   // 마지막 중심·불러온 데이터를 기억
 
-  function nearbyRadius(){ return parseInt($('#nb-range').value,10)||10; }
   let nearbyCat='all';   // 주변맛집 종류 필터
 
   function renderNbCats(){
@@ -1416,31 +1408,21 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function paintNearby(){
     const box=$('#nearbybody');
     if(!nearbyState.center || !Array.isArray(nearbyState.rows)){ return; }
-    const center=nearbyState.center, radius=nearbyRadius();
+    const center=nearbyState.center;
     const mine=session&&session.user?session.user.id:null;
+    // 거리 제한 없이, 내 위치에서 가까운 순으로 전부 표시
     const list=nearbyState.rows
       .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
-      .filter(s=>s.dist<=radius)
       .filter(s=>nearbyCat==='all' || s.cat===nearbyCat)
-      .sort((a,b)=>a.dist-b.dist)
-      .slice(0,80);
+      .sort((a,b)=>a.dist-b.dist);
     if(!list.length){
       const total=nearbyState.rows.length;
-      const inRange=nearbyState.rows.filter(s=>distKm(center.lat,center.lng,s.lat,s.lng)<=radius).length;
       let hint;
       if(total===0){
         hint='아직 아무도 맛집을 공개하지 않았습니다.<br>맛집을 저장할 때 <b>주변맛집에 공개</b>를 켜면 여기 처음으로 올라갑니다.';
-      }else if(nearbyCat!=='all' && inRange>0){
-        // 반경 안에는 있는데 그 종류만 없음
-        hint='주변 '+radius+'km 안에 <b>'+cat(nearbyCat).name+'</b>은 아직 없습니다.<br>종류를 <b>전체</b>로 바꾸면 이 근처 '+inRange+'곳이 보입니다.';
       }else{
-        // 데이터는 있는데 이 반경 밖 — 가장 가까운 곳까지 거리를 알려줍니다
-        const nearest=nearbyState.rows
-          .map(s=>distKm(center.lat,center.lng,s.lat,s.lng))
-          .sort((a,b)=>a-b)[0];
-        hint='주변 '+radius+'km 안에는 공개된 맛집이 없습니다.<br>'+
-             '가장 가까운 공개 맛집은 <b>약 '+nearest.toFixed(nearest<10?1:0)+'km</b> 거리에 있습니다. '+
-             '거리 막대를 오른쪽으로 넓혀 보세요. (전체 공개 '+total+'곳)';
+        // 그 종류만 없는 경우
+        hint='공개된 <b>'+cat(nearbyCat).name+'</b> 맛집이 아직 없습니다.<br>종류를 <b>전체</b>로 바꾸면 공개된 '+total+'곳이 보입니다.';
       }
       box.innerHTML='<div class="nb-empty">'+hint+'</div>';
       return;
@@ -1510,10 +1492,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     }
   }
   $('#nearby-refresh').onclick=()=>renderNearby(true);
-  $('#nb-range').addEventListener('input', ()=>{
-    $('#nb-rangeval').textContent=nearbyRadius()+'km 이내';
-    paintNearby();
-  });
 
   /* ================= 나홀로 (혼행·혼밥 추천) ================= */
   // 혼밥: 카카오맵 검색(무료, 앱 내장 키).
