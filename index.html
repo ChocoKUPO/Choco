@@ -217,7 +217,8 @@
   .panel ol{margin:0 0 12px;padding-left:18px;font-size:12.5px;color:var(--ink-soft);line-height:1.8;letter-spacing:-.02em}
   .panel code{background:#F1F3F0;padding:1px 5px;border-radius:5px;font-size:11.5px;word-break:break-all}
   textarea{width:100%;min-height:88px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;
-    resize:vertical;font-size:12.5px;line-height:1.5;background:#FBFCFB;word-break:break-all}
+    resize:vertical;font-size:12.5px;line-height:1.5;background:var(--surface);color:var(--ink);word-break:break-all}
+  textarea::placeholder{color:var(--ink-faint)}
   textarea.sql{min-height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;
     border-radius:11px;background:var(--ink);color:#fff;font-size:14px;font-weight:700;letter-spacing:-.03em}
@@ -232,7 +233,8 @@
 
   .share-filters{margin:2px 0 8px}
   .share-f{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
-    background:var(--surface);font-size:14px;font-family:inherit;letter-spacing:-.025em}
+    background:var(--surface);color:var(--ink);font-size:14px;font-family:inherit;letter-spacing:-.025em}
+  .share-f::placeholder{color:var(--ink-faint)}
   .share-f:focus{outline:none;border-color:var(--celadon);background:var(--surface)}
   .share-frow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
   .share-f.sm{padding:10px 11px;font-size:13.5px}
@@ -416,7 +418,9 @@
   .slinks a:active{background:var(--surface)}
   .field input[type=text],.field input[type=date],.field select,.field textarea{
     width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;
-    background:var(--surface);letter-spacing:-.025em}
+    background:var(--surface);color:var(--ink);letter-spacing:-.025em}
+  .field input::placeholder,.field textarea::placeholder{color:var(--ink-faint)}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--celadon)}
   .field textarea{min-height:74px;font-size:14px}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .inline{display:flex;gap:8px}
@@ -1003,7 +1007,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v84';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v85';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
