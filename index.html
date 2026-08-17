@@ -445,6 +445,10 @@
   .rloading{padding:12px;text-align:center;font-size:12.5px;color:var(--ink-faint);letter-spacing:-.02em}
   .searchbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:14px}
   .searchbox .lbl{font-size:12px;font-weight:750;color:var(--ink-soft);margin-bottom:7px}
+  .searchbox .inline input{padding:11px 13px;border:1px solid var(--line);border-radius:11px;
+    background:var(--fill);color:var(--ink);letter-spacing:-.025em;font-size:14px}
+  .searchbox .inline input::placeholder{color:var(--ink-faint)}
+  .searchbox .inline input:focus{outline:none;border-color:var(--celadon);background:var(--surface)}
 
   /* ---- 로그인 화면 ---- */
   .login{position:fixed;inset:0;z-index:70;background:var(--paper);
@@ -1007,7 +1011,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v85';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v86';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
