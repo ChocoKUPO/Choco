@@ -1008,7 +1008,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v87';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v88';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2647,8 +2647,21 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   $('#makecode').onclick=()=>{
     const arr=selected();
     if(!arr.length){ toast('공유할 곳을 먼저 골라 주세요.'); return; }
-    if(arr.length>300 && !confirm(arr.length+'곳을 공유하면 코드가 매우 길어져 카톡 전송이 어려울 수 있어요.\n필터로 더 줄이는 게 좋습니다. 그래도 만들까요?')) return;
-    $('#code').value='MISIK1:'+b64enc(JSON.stringify({v:1,from:'미식노트',at:Date.now(),places:arr}));
+    if(arr.length>600 && !confirm(arr.length+'곳을 공유하면 코드가 길어질 수 있어요.\n필터로 더 줄이는 게 좋습니다. 그래도 만들까요?')) return;
+    // 공유에 꼭 필요한 것만 짧은 키로 담아 코드 길이를 줄입니다
+    // n=이름 c=종류 k=세부업종 r=별점 a=주소 x=위도 y=경도 u=카카오url
+    const slim=arr.map(p=>{
+      const o={n:p.name};
+      if(p.cat && p.cat!=='etc') o.c=p.cat;
+      if(p.catName) o.k=p.catName;
+      if(p.rating) o.r=p.rating;
+      if(p.addr) o.a=p.addr;
+      if(p.lat) o.x=Math.round(p.lat*1e5)/1e5;   // 좌표는 소수 5자리면 충분(약 1m)
+      if(p.lng) o.y=Math.round(p.lng*1e5)/1e5;
+      if(p.url) o.u=p.url;
+      return o;
+    });
+    $('#code').value='MISIK1:'+b64enc(JSON.stringify({v:2,s:slim}));
     $('#codewrap').style.display='block';
     toast(arr.length+'곳으로 코드를 만들었습니다.');
   };
@@ -2674,11 +2687,21 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(!raw){ toast('코드를 붙여넣어 주세요.'); return; }
     try{
       const data=JSON.parse(b64dec(raw.startsWith('MISIK1:')?raw.slice(7):raw));
-      if(!Array.isArray(data.places)) throw 0;
+      // v2(압축): {v:2, s:[{n,c,k,r,a,x,y,u}]}  /  v1(구형): {places:[...전체 필드]}
+      let incoming;
+      if(Array.isArray(data.s)){
+        incoming=data.s.map(o=>({
+          name:o.n, cat:o.c||'etc', catName:o.k||'', rating:o.r||0,
+          addr:o.a||'', lat:(o.x!=null?o.x:null), lng:(o.y!=null?o.y:null), url:o.u||''
+        }));
+      }else if(Array.isArray(data.places)){
+        incoming=data.places;
+      }else{ throw 0; }
       let added=0;
-      data.places.forEach(p=>{
-        if(state.places.some(x=>x.id===p.id) || findDuplicate(p.name, p.addr)) return;
-        state.places.unshift(Object.assign({},p,{id:uid(),created:Date.now(),updated:Date.now(),folder:'가보고 싶은 곳'}));
+      incoming.forEach(p=>{
+        if(!p.name) return;
+        if(findDuplicate(p.name, p.addr)) return;
+        state.places.unshift(Object.assign({}, p, {id:uid(),created:Date.now(),updated:Date.now(),folder:'가보고 싶은 곳',public:false}));
         added++;
       });
       await saveLocal(); schedulePush();
