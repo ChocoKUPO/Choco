@@ -1008,7 +1008,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v90';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v91';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1155,6 +1155,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   }
 
   function mergePlaces(a,b){
+    const norm=s=>(s||'').replace(/\s+/g,'').toLowerCase();  // 띄어쓰기·대소문자 무시
     const m=new Map();
     a.concat(b).forEach(p=>{
       if(!p||!p.id) return;
@@ -1165,9 +1166,13 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const out=[...m.values()];
     const seen=new Set(), fin=[];
     out.forEach(p=>{
-      const k=(p.name||'')+'|'+(p.addr||'');
-      if(seen.has(k)) return;
-      seen.add(k); fin.push(p);
+      // 이름이 같고 주소도 같으면(양쪽 다 주소 있을 때) 중복. 한쪽이라도 주소 없으면 이름만으로 중복.
+      const n=norm(p.name), ad=norm(p.addr);
+      const k=ad ? n+'|'+ad : n;
+      // 이미 이름만 키(주소 없는 것)로 들어온 같은 이름이 있으면 그것도 중복으로 봄
+      if(seen.has(k) || seen.has(n)) return;
+      seen.add(k); if(!ad) seen.add(n);
+      fin.push(p);
     });
     return fin.sort((x,y)=>(y.created||0)-(x.created||0));
   }
