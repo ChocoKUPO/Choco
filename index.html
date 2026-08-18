@@ -1008,7 +1008,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v88';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v89';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2584,7 +2584,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   }
   function b64dec(s){
-    s=s.trim().replace(/-/g,'+').replace(/_/g,'/');
+    // 붙여넣기 과정에서 섞인 공백·줄바꿈·따옴표 등을 제거하고, base64 유효 문자만 남깁니다
+    s=String(s||'').replace(/-/g,'+').replace(/_/g,'/');
+    s=s.replace(/[^A-Za-z0-9+/=]/g,'');   // base64 외 문자(줄바꿈·공백·특수문자) 모두 제거
+    s=s.replace(/=+$/,'');                 // 기존 패딩 제거 후
+    while(s.length % 4) s+='=';            // 4의 배수로 패딩 다시 맞춤
     return new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)));
   }
   // 공유 화면: 필터를 적용해 목록을 좁힙니다
@@ -2686,7 +2690,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const raw=$('#incode').value.trim();
     if(!raw){ toast('코드를 붙여넣어 주세요.'); return; }
     try{
-      const data=JSON.parse(b64dec(raw.startsWith('MISIK1:')?raw.slice(7):raw));
+      // MISIK1: 접두사가 있으면 그 뒤부터 사용 (앞뒤 공백·대소문자 허용)
+      const m=raw.match(/MISIK1\s*:\s*([\s\S]+)/i);
+      const payload=m ? m[1] : raw;
+      const data=JSON.parse(b64dec(payload));
       // v2(압축): {v:2, s:[{n,c,k,r,a,x,y,u}]}  /  v1(구형): {places:[...전체 필드]}
       let incoming;
       if(Array.isArray(data.s)){
