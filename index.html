@@ -46,6 +46,17 @@
       --shadow-soft:0 1px 2px rgba(0,0,0,.35);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* 시작 스플래시 화면 */
+  .splash{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#232326,#121214);
+    display:flex;align-items:center;justify-content:center;transition:opacity .5s ease;opacity:1}
+  .splash.hide{opacity:0;pointer-events:none}
+  .splash-inner{display:flex;flex-direction:column;align-items:center;gap:2px;
+    animation:splashRise .7s cubic-bezier(.2,.7,.2,1) both}
+  .splash-pin{filter:drop-shadow(0 10px 22px rgba(0,0,0,.45));animation:splashPin 1.6s ease-in-out infinite}
+  .splash-title{margin-top:18px;color:#F2F2F7;font-size:21px;font-weight:800;letter-spacing:-.05em}
+  .splash-sub{color:#6FCf9a;font-size:13px;font-weight:600;letter-spacing:.02em}
+  @keyframes splashRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes splashPin{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
   html,body{margin:0;padding:0}
   body{background:var(--paper);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
@@ -547,6 +558,24 @@
   html.dark .avatar{color:#fff}
 </style>
 
+<div class="splash" id="splash">
+  <div class="splash-inner">
+    <svg class="splash-pin" viewBox="0 0 512 512" width="96" height="96">
+      <defs>
+        <linearGradient id="sp-pin" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#33D477"/><stop offset="1" stop-color="#1E9E52"/>
+        </linearGradient>
+      </defs>
+      <path d="M256 116c-64 0-116 51-116 114 0 79 95 155 112 168a6.5 6.5 0 0 0 8 0c17-13 112-89 112-168 0-63-52-114-116-114z" fill="url(#sp-pin)"/>
+      <g stroke="#0D2417" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <path d="M230 190v22c0 11 6 17 15 17s15-6 15-17v-22"/><path d="M245 229v58"/>
+        <path d="M286 190c-9 4-14 18-14 34 0 11 6 18 14 19v44"/>
+      </g>
+    </svg>
+    <div class="splash-title">대한민국 어디까지</div>
+    <div class="splash-sub">내 맛집 지도</div>
+  </div>
+</div>
 <div class="app">
   <header class="topbar" id="topbar">
     <div class="brand">
@@ -934,6 +963,22 @@
   applyTheme();                 // 지금 바로 적용
   setInterval(applyTheme, 60000); // 1분마다 시간 확인 (경계 넘으면 전환)
 })();
+
+/* 시작 스플래시: 앱이 준비되면 부드럽게 사라집니다 */
+(function(){
+  function hideSplash(){
+    var sp=document.getElementById('splash');
+    if(!sp) return;
+    sp.classList.add('hide');
+    setTimeout(function(){ if(sp&&sp.parentNode) sp.parentNode.removeChild(sp); }, 600);
+  }
+  // 최소 1초는 보여주고, 로드가 끝나면 숨김 (둘 중 늦은 시점)
+  var loaded=false, minTime=false;
+  window.addEventListener('load', function(){ loaded=true; if(minTime) hideSplash(); });
+  setTimeout(function(){ minTime=true; if(loaded) hideSplash(); }, 1000);
+  // 안전장치: 3초 지나면 무조건 숨김
+  setTimeout(hideSplash, 3000);
+})();
 </script>
 <script>
 /* ------------------------------------------------------------------
@@ -1008,7 +1053,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
   ];
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v91';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v92';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
