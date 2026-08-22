@@ -1043,17 +1043,25 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   };
 
   const CATS = [
-    {id:'kor', name:'한식', e:'🍚', c:'#2F6B57'},
-    {id:'jpn', name:'일식', e:'🍣', c:'#3B6E8C'},
-    {id:'chn', name:'중식', e:'🥟', c:'#B4432F'},
-    {id:'west',name:'양식', e:'🍝', c:'#8A6A3B'},
-    {id:'bun', name:'분식', e:'🍜', c:'#C4772A'},
-    {id:'cafe',name:'카페', e:'☕️', c:'#6B5B4A'},
-    {id:'bar', name:'술집', e:'🍺', c:'#5C6E2F'},
-    {id:'etc', name:'기타', e:'🍽',  c:'#5E6B64'}
+    {id:'kor',  name:'한식',        e:'🍚', c:'#3A6B5A'},
+    {id:'chk',  name:'치킨',        e:'🍗', c:'#C8842B'},
+    {id:'cafe', name:'카페·디저트', e:'🧋', c:'#7A5C42'},
+    {id:'fast', name:'패스트푸드',  e:'🍔', c:'#B4452F'},
+    {id:'chn',  name:'중식',        e:'🍜', c:'#9C4030'},
+    {id:'bun',  name:'분식',        e:'🍢', c:'#C4772A'},
+    {id:'jjim', name:'찜·탕',       e:'🍲', c:'#8A5A3B'},
+    {id:'sea',  name:'해물, 생선',  e:'🍣', c:'#3B6E8C'},
+    {id:'meat', name:'고기',        e:'🥩', c:'#A54B38'},
+    {id:'west', name:'양식',        e:'🍝', c:'#8A6A3B'}
   ];
+  // 예전에 저장된 종류(일식·술집·기타)도 화면에 깨지지 않게 표시용으로만 남겨 둡니다
+  const CATS_LEGACY = {
+    jpn: {id:'jpn', name:'일식', e:'🍣', c:'#3B6E8C'},
+    bar: {id:'bar', name:'술집', e:'🍺', c:'#5C6E2F'},
+    etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
+  };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v92';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v93';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1139,7 +1147,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   const $ = s => document.querySelector(s);
   const el = (t,c) => { const n=document.createElement(t); if(c) n.className=c; return n; };
-  const cat = id => CATS.find(c=>c.id===id) || CATS[7];
+  const cat = id => CATS.find(c=>c.id===id) || CATS_LEGACY[id] || {id:'etc',name:'기타',e:'🍽',c:'#5E6B64'};
   const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   const esc = s => (s||'').replace(/[<>&"]/g, m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
   const pinHTML = c => '<div class="pin" style="background:'+c.c+'"><span>'+c.e+'</span></div>';
@@ -2048,17 +2056,27 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   /* ================= 입력 ================= */
   function guessCat(catName, groupCode){
     const s=catName||'';
-    if(groupCode==='CE7'||/카페|디저트|베이커리|제과|빵/.test(s)) return 'cafe';
-    if(/술집|주점|호프|이자카야|와인|포장마차/.test(s)) return 'bar';
-    // 해물·생선요리(우럭·물회·매운탕·조개 등)는 한식으로 먼저 판정 — 일식(회)으로 밀리지 않게
-    if(/해물|해산물|생선|물회|매운탕|지리|조개|낙지|주꾸미|문어|우럭|광어|아구|대게|게요리|해장국|추어탕|장어|복어|굴|전복/.test(s)) return 'kor';
-    // 진짜 일식만 일식으로 (초밥·스시·돈까스·라멘 등)
-    if(/일식|초밥|스시|사시미|롤|돈까스|돈가스|라멘|라면집|우동|규동|텐동|가츠|오마카세/.test(s)) return 'jpn';
-    if(/중식|중국|짜장|짬뽕|마라/.test(s)) return 'chn';
-    if(/양식|이탈리|파스타|피자|스테이크|프렌치|멕시칸|햄버거|브런치/.test(s)) return 'west';
-    if(/분식|떡볶이|김밥|순대|튀김/.test(s)) return 'bun';
-    if(/한식|고기|국밥|찌개|백반|족발|보쌈|치킨|삼겹|갈비|냉면|칼국수|한정식|쌈밥|비빔밥/.test(s)) return 'kor';
-    return 'etc';
+    // 카페·디저트
+    if(groupCode==='CE7'||/카페|커피|디저트|베이커리|제과|빵|아이스크림|빙수|케이크|와플|도넛|차\b/.test(s)) return 'cafe';
+    // 치킨
+    if(/치킨|닭강정|통닭|후라이드|양념치킨|닭발|닭갈비/.test(s)) return 'chk';
+    // 패스트푸드
+    if(/햄버거|버거|피자|샌드위치|핫도그|토스트|패스트푸드|분식(?=.*버거)/.test(s)) return 'fast';
+    // 해물·생선 (회·초밥·해산물 전부 여기로)
+    if(/해물|해산물|생선|회\b|물회|초밥|스시|사시미|롤|조개|굴|전복|낙지|주꾸미|문어|오징어|우럭|광어|아구|대게|게|새우|장어|복어|조개구이|해물찜|아나고/.test(s)) return 'sea';
+    // 찜·탕·국물
+    if(/찜|탕|국\b|전골|찌개|매운탕|지리|해장국|삼계탕|감자탕|설렁탕|곰탕|순대국|추어탕|보양/.test(s)) return 'jjim';
+    // 고기 (구이·정육)
+    if(/고기|삼겹|갈비|구이|정육|바베큐|바비큐|족발|보쌈|곱창|막창|양꼬치|불고기|육류/.test(s)) return 'meat';
+    // 중식
+    if(/중식|중국|짜장|짬뽕|마라|탕수육|양꼬치(?!.*고기)/.test(s)) return 'chn';
+    // 양식
+    if(/양식|이탈리|파스타|스파게티|리조또|스테이크|프렌치|멕시칸|브런치|경양식/.test(s)) return 'west';
+    // 분식
+    if(/분식|떡볶이|김밥|순대|튀김|어묵|라면|만두|우동/.test(s)) return 'bun';
+    // 한식 (일반)
+    if(/한식|백반|한정식|비빔밥|국밥|쌈밥|나물|돌솥|정식|가정식|보리밥|칼국수|냉면|수제비/.test(s)) return 'kor';
+    return 'kor';   // 분류 애매하면 한식(한국앱 기본값)
   }
   function renderCats(){
     const g=$('#catgrid'); g.innerHTML='';
