@@ -866,6 +866,12 @@
       <p style="margin:0 0 6px">대한민국 어디까지 <span id="buildtag" style="color:var(--ink-faint);letter-spacing:-.02em">버전 1.0.0</span></p>
       <p class="hint" style="margin:0">맛집 백업(내보내기·불러오기)은 공유 탭에 있습니다.</p>
     </div>
+    <div class="panel" style="margin:0 0 12px">
+      <h3>종류 다시 분류하기</h3>
+      <p style="margin:0 0 10px">저장된 맛집 전체를 <b>지금 기준</b>으로 다시 분류합니다. 이름·세부업종을 보고 한식·치킨·해물 등으로 자동 정리합니다.</p>
+      <p class="hint" style="margin:0 0 12px">직접 지정해 둔 종류도 새로 덮어씁니다. 되돌릴 수 없으니, 걱정되면 먼저 공유 탭에서 <b>파일로 내보내기</b>로 백업해 두세요.</p>
+      <button class="btn full" id="recat">전체 다시 분류</button>
+    </div>
     <div style="height:8px"></div>
   </div>
 </div>
@@ -1061,7 +1067,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v93';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v94';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2579,6 +2585,25 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
   $('#gear').onclick=openSettings;
   $('#setclose').onclick=closeSettings;
+  // 저장된 맛집 전체를 지금 기준으로 다시 분류
+  $('#recat').onclick=async()=>{
+    if(!state.places.length){ toast('분류할 맛집이 없습니다.'); return; }
+    // 바뀔 개수를 먼저 계산해 미리 보여줍니다
+    let changed=0;
+    const plan=state.places.map(p=>{
+      const basis=(p.catName&&p.catName.trim()) ? p.catName : p.name;   // 세부업종 우선, 없으면 이름
+      const nc=guessCat(basis);
+      if(nc!==p.cat) changed++;
+      return nc;
+    });
+    if(changed===0){ toast('이미 모두 지금 기준으로 분류되어 있습니다.'); return; }
+    if(!confirm('맛집 '+state.places.length+'곳 중 '+changed+'곳의 종류가 바뀝니다.\n직접 지정한 종류도 덮어씁니다. 진행할까요?')) return;
+    state.places.forEach((p,i)=>{ p.cat=plan[i]; p.updated=Date.now(); });
+    await saveLocal(); schedulePush();
+    renderList(); drawPins(); renderPick();
+    toast(changed+'곳을 다시 분류했습니다.');
+    closeSettings();
+  };
 
   /* ================= 관리자 시트 ================= */
   function openAdmin(){
