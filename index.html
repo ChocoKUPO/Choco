@@ -1022,7 +1022,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v99';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v100';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2025,7 +2025,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function guessCat(catName, groupCode){
     const s=catName||'';
     // 카페·디저트
-    if(groupCode==='CE7'||/카페|커피|디저트|베이커리|제과|빵|아이스크림|빙수|케이크|와플|도넛|차\b/.test(s)) return 'cafe';
+    if(groupCode==='CE7'||/카페|커피|디저트|베이커리|제과|빵|아이스크림|빙수|케이크|와플|도넛|차\b|떡(?!볶이)|한과|약과/.test(s)) return 'cafe';
     // 치킨
     if(/치킨|닭강정|통닭|후라이드|양념치킨|닭발|닭갈비/.test(s)) return 'chk';
     // 패스트푸드
