@@ -1023,7 +1023,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v102';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v103';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2031,6 +2031,8 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     if(/치킨|닭강정|통닭|후라이드|양념치킨|닭발|닭갈비/.test(s)) return 'chk';
     // 패스트푸드
     if(/햄버거|버거|피자|샌드위치|핫도그|토스트|패스트푸드|분식(?=.*버거)/.test(s)) return 'fast';
+    // 돈까스 (카카오 '돈까스,우동' 분류가 면·분식으로 밀리지 않게 먼저 판정 → 양식)
+    if(/돈까스|돈가스|돈카츠|돈까츠|카츠|가츠|커틀릿|커틀렛/.test(s)) return 'west';
     // 해물·생선 (회·초밥·해산물 전부 여기로)
     if(/해물|해산물|생선|회\b|물회|초밥|스시|사시미|롤|조개|굴|전복|낙지|주꾸미|문어|오징어|우럭|광어|아구|대게|꽃게|게장|새우|장어|복어|조개구이|해물찜|아나고/.test(s)) return 'sea';
     // 찜·탕·국물
