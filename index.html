@@ -534,6 +534,30 @@
   html.dark .cat.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
   html.dark .toast{background:#2C2C2E;color:var(--ink)}
   html.dark .avatar{color:#fff}
+  /* 앱 사용법 가이드 (첫 실행 + 설정에서 다시 보기) */
+  .guide{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center}
+  .guide.on{display:flex}
+  .guide-card{width:100%;max-width:520px;background:var(--paper);border-radius:22px 22px 0 0;
+    padding:14px 22px calc(20px + env(safe-area-inset-bottom));animation:guideUp .28s cubic-bezier(.2,.7,.2,1)}
+  @keyframes guideUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+  .guide-top{display:flex;justify-content:space-between;align-items:center;min-height:34px}
+  .guide-count{font-size:12.5px;font-weight:700;color:var(--ink-faint);letter-spacing:-.01em}
+  .guide-skip{background:none;border:0;color:var(--ink-soft);font-size:14px;font-weight:600;padding:6px 2px;cursor:pointer}
+  .guide-body{padding:18px 0 8px;min-height:268px;touch-action:pan-y}
+  .guide-ic{width:64px;height:64px;border-radius:18px;background:var(--celadon-soft);color:var(--celadon);
+    display:grid;place-items:center;margin-bottom:20px}
+  .guide-ic svg{width:32px;height:32px}
+  .guide-t{font-size:22px;font-weight:800;letter-spacing:-.045em;color:var(--ink);margin:0 0 10px;line-height:1.35}
+  .guide-d{font-size:15px;line-height:1.7;color:var(--ink-soft);letter-spacing:-.02em;margin:0}
+  .guide-d b{color:var(--ink)}
+  .guide-more{display:inline-block;margin-top:14px;font-size:13.5px;font-weight:700;color:var(--celadon);text-decoration:none}
+  .guide-dots{display:flex;gap:6px;justify-content:center;margin:10px 0 16px}
+  .guide-dots i{width:6px;height:6px;border-radius:3px;background:var(--line);transition:all .2s}
+  .guide-dots i.on{width:18px;background:var(--celadon)}
+  .guide-nav{display:flex;gap:10px}
+  .guide-nav .btn{flex:1;padding:14px 16px;font-size:15px}
+  .guide-nav .btn.ghost{flex:0 0 34%}
+  .guide-nav #guide-next{background:var(--celadon);border-color:var(--celadon);color:#fff}
 </style>
 
 <div class="app">
@@ -806,6 +830,15 @@
 </div>
 
 <!-- 설정 (일반 사용자용) -->
+<div class="guide" id="guide" role="dialog" aria-modal="true" aria-label="사용법 가이드">
+  <div class="guide-card">
+    <div class="guide-top"><span class="guide-count" id="guide-count"></span><button class="guide-skip" id="guide-skip">건너뛰기</button></div>
+    <div class="guide-body" id="guide-body"></div>
+    <div class="guide-dots" id="guide-dots"></div>
+    <div class="guide-nav"><button class="btn ghost" id="guide-prev">이전</button><button class="btn" id="guide-next">다음</button></div>
+  </div>
+</div>
+
 <div class="sheet" id="setsheet">
   <div class="sheet-head">
     <button id="setclose">닫기</button>
@@ -813,6 +846,11 @@
     <span style="width:34px"></span>
   </div>
   <div class="form">
+    <div class="panel" style="margin:0 0 12px">
+      <h3>사용법 가이드</h3>
+      <p style="margin:0 0 12px">처음 켰을 때 나왔던 기능 안내를 다시 볼 수 있습니다.</p>
+      <button class="btn full" id="guide-open">사용법 가이드 보기</button>
+    </div>
     <div class="panel" style="margin:0 0 12px">
       <h3>정보</h3>
       <p style="margin:0 0 6px">대한민국 어디까지 <span id="buildtag" style="color:var(--ink-faint);letter-spacing:-.02em">버전 1.0.0</span></p>
@@ -1005,7 +1043,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v104';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v105';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2511,6 +2549,67 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
   $('#gear').onclick=openSettings;
   $('#setclose').onclick=closeSettings;
+
+  /* ================= 사용법 가이드 ================= */
+  const GUIDE_KEY='misiknote:guide-seen';
+  const gIc=p=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+  const GUIDE_STEPS=[
+    {ic:gIc('<path d="M12 5v14M5 12h14"/>'), t:'맛있게 먹은 곳, 위치까지 남겨요',
+     d:'오른쪽 아래 <b>+ 버튼</b>을 누르고 <b>가게 찾아서 채우기</b>에 지역과 가게 이름을 넣으면 주소·위치·종류가 자동으로 채워져요. 별점과 한 줄 메모만 더하면 끝이에요.'},
+    {ic:gIc('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'), t:'목록에서 다시 찾아요',
+     d:'<b>목록</b> 탭에서 가게 이름·메모·태그로 검색하고, 한식·치킨·카페 같은 <b>종류</b>로 걸러 볼 수 있어요. 카드를 누르면 카카오맵·네이버로 바로 이동해요.'},
+    {ic:gIc('<path d="M12 21c4.5-4.2 7-7.6 7-11a7 7 0 1 0-14 0c0 3.4 2.5 6.8 7 11Z"/><circle cx="12" cy="10" r="2.5"/>'), t:'주변맛집을 둘러봐요',
+     d:'<b>주변맛집</b> 탭은 지금 있는 도시에 다른 사람들이 공개한 맛집을 <b>가까운 순</b>으로 보여줘요. 저장할 때 <b>주변맛집에 공개</b>를 켜면 내 맛집도 올라가요.'},
+    {ic:gIc('<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>'), t:'혼자라도 괜찮아요',
+     d:'<b>나홀로</b> 탭에서 혼자 떠나기 좋은 <b>여행지</b>와 눈치 없이 먹기 좋은 <b>혼밥 맛집</b>을 추천받을 수 있어요.'},
+    {ic:gIc('<path d="M9.5 13.5 14 9M10 6.5l1.8-1.8a3.3 3.3 0 0 1 4.7 4.7l-1.8 1.8M14 17.5l-1.8 1.8a3.3 3.3 0 0 1-4.7-4.7l1.8-1.8"/>'), t:'통째로 공유하고 백업해요',
+     d:'<b>공유</b> 탭에서 고른 맛집을 <b>코드</b>나 <b>파일</b>로 친구에게 보낼 수 있어요. <b>파일로 내보내기</b>를 하면 내 맛집 전체가 백업돼요.'},
+    {ic:gIc('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.3 3.5-5 7-5s6.3 1.7 7 5"/>'), t:'로그인하면 어디서든 그대로',
+     d:'<b>프로필</b> 탭에서 카카오 로그인을 하면 기록이 계정에 보관돼 폰을 바꿔도 그대로 남아요. 이 안내는 <b>톱니 → 사용법 가이드</b>에서 언제든 다시 볼 수 있어요.',
+     more:true}
+  ];
+  let guideIdx=0;
+  function paintGuide(){
+    const st=GUIDE_STEPS[guideIdx], last=guideIdx===GUIDE_STEPS.length-1;
+    $('#guide-body').innerHTML='<div class="guide-ic">'+st.ic+'</div><h3 class="guide-t">'+st.t+'</h3><p class="guide-d">'+st.d+'</p>'+
+      (st.more?'<a class="guide-more" href="https://chocokupo.github.io/guide.html" target="_blank" rel="noopener">자세한 사용법 보기 →</a>':'');
+    $('#guide-count').textContent=(guideIdx+1)+' / '+GUIDE_STEPS.length;
+    $('#guide-dots').innerHTML=GUIDE_STEPS.map((_,i)=>'<i'+(i===guideIdx?' class="on"':'')+'></i>').join('');
+    $('#guide-prev').style.display=guideIdx===0?'none':'';
+    $('#guide-next').textContent=last?'시작하기':'다음';
+    $('#guide-skip').style.visibility=last?'hidden':'visible';
+  }
+  function openGuide(){ guideIdx=0; paintGuide(); $('#guide').classList.add('on'); }
+  function closeGuide(){
+    $('#guide').classList.remove('on');
+    try{ localStorage.setItem(GUIDE_KEY,'1'); }catch(e){}
+  }
+  function guideGo(d){
+    const n=guideIdx+d;
+    if(n>=GUIDE_STEPS.length){ closeGuide(); return; }
+    if(n<0) return;
+    guideIdx=n; paintGuide();
+  }
+  $('#guide-next').onclick=()=>guideGo(1);
+  $('#guide-prev').onclick=()=>guideGo(-1);
+  $('#guide-skip').onclick=closeGuide;
+  $('#guide-open').onclick=()=>{ closeSettings(); setTimeout(openGuide,180); };
+  // 좌우로 밀어서 넘기기
+  (function(){
+    let sx=null, sy=null;
+    const b=$('#guide-body');
+    b.addEventListener('touchstart',e=>{ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+    b.addEventListener('touchend',e=>{
+      if(sx===null) return;
+      const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy; sx=null;
+      if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)) guideGo(dx<0?1:-1);
+    },{passive:true});
+  })();
+  // 처음 켰을 때 한 번만 자동으로 (시작 화면이 사라진 뒤)
+  function maybeShowGuide(){
+    let seen=false; try{ seen=localStorage.getItem(GUIDE_KEY)==='1'; }catch(e){}
+    if(!seen) setTimeout(openGuide,1500);
+  }
   // 저장된 맛집 전체를 지금 기준으로 다시 분류
   $('#recat').onclick=async()=>{
     if(!state.places.length){ toast('분류할 맛집이 없습니다.'); return; }
@@ -2762,6 +2861,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     await loadLocal();
     await loadSession();
     renderChips(); renderList(); refreshMe(); setSync(session?'ok':'off');
+    maybeShowGuide();
 
     if(cloudOn()){
       const back = await Auth.readRedirect();
