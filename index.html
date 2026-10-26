@@ -260,12 +260,18 @@
     pointer-events:none;visibility:hidden}
   .sheet.on{transform:none;pointer-events:auto;visibility:visible}
   .sheet-head{position:sticky;top:0;background:var(--paper);padding:16px 20px 10px;z-index:2;
-    display:flex;align-items:center;justify-content:space-between}
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
   .sheet-head h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.04em}
   .sheet-head button{font-size:14px;font-weight:700;color:var(--ink-soft);letter-spacing:-.02em}
   .form{padding:0 20px}
   .field{margin-bottom:14px}
   .field label{display:block;font-size:12px;font-weight:750;color:var(--ink-soft);margin-bottom:6px}
+  .sheet-head .pub-line{flex:0 0 100%;min-width:0;max-width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin:10px 0 0;padding:8px 0 0;border-top:1px solid var(--line, rgba(0,0,0,.08));cursor:pointer;font-size:13px;letter-spacing:-.02em;color:var(--ink-soft)}
+  .pub-line .pub-t{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pub-line .pub-t b{color:var(--ink);font-weight:750}
+  .pub-line small{font-size:11.5px;color:var(--ink-faint);margin-left:6px}
+  .pub-line input{flex:0 0 auto;width:20px;height:20px;margin:0;accent-color:var(--celadon)}
   .toggle-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;cursor:pointer;margin-bottom:0}
   .toggle-row input[type=checkbox]{flex:0 0 auto;width:22px;height:22px;accent-color:var(--celadon);margin-top:2px}
 
@@ -751,6 +757,10 @@
     <button id="cancel">닫기</button>
     <h2 id="sheettitle">맛집 남기기</h2>
     <button id="save" style="color:var(--celadon)">저장</button>
+    <label class="pub-line" for="f-public">
+      <span class="pub-t">🌏 <b>주변맛집에 공개</b><small>이름·주소·별점만 공개</small></span>
+      <input type="checkbox" id="f-public">
+    </label>
   </div>
   <div class="form">
     <div class="searchbox" id="kwbox">
@@ -810,12 +820,6 @@
     <div class="field">
       <label for="f-memo">한 줄 기록</label>
       <textarea id="f-memo" placeholder="뭐가 맛있었는지, 다음에 뭘 시킬지"></textarea>
-    </div>
-    <div class="field">
-      <label class="toggle-row" for="f-public">
-        <span><b>주변맛집에 공개</b><br><span style="font-size:12px;color:var(--ink-faint);font-weight:400">켜면 내 근처 사람들이 이 맛집을 볼 수 있습니다. 이름·주소·별점만 공개되고, 한 줄 기록은 공개되지 않습니다.</span></span>
-        <input type="checkbox" id="f-public">
-      </label>
     </div>
     <div style="height:12px"></div>
   </div>
@@ -1045,7 +1049,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v110';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v111';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
