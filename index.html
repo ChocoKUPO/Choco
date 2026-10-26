@@ -609,10 +609,12 @@
           <div class="share-frow">
             <select id="pick-cat" class="share-f sm">
               <option value="all">전체 종류</option>
-              <option value="kor">한식</option><option value="jpn">일식</option>
-              <option value="chn">중식</option><option value="west">양식</option>
-              <option value="bun">분식</option><option value="cafe">카페</option>
-              <option value="bar">술집</option><option value="etc">기타</option>
+              <option value="kor">한식</option><option value="chk">치킨</option>
+              <option value="cafe">카페·디저트·떡</option><option value="fast">패스트푸드</option>
+              <option value="chn">중식</option><option value="bun">면·분식</option>
+              <option value="jjim">찜·탕</option><option value="sea">해물, 생선</option>
+              <option value="meat">고기</option><option value="west">양식</option>
+              <option value="asia">아시안</option><option value="bar">술집</option>
             </select>
             <select id="pick-rate" class="share-f sm">
               <option value="0">별점 전체</option>
@@ -858,8 +860,8 @@
     </div>
     <div class="panel" style="margin:0 0 12px">
       <h3>종류 다시 분류하기</h3>
-      <p style="margin:0 0 10px">저장된 맛집 전체를 <b>지금 기준</b>으로 다시 분류합니다. 이름·세부업종을 보고 한식·치킨·해물 등으로 자동 정리합니다.</p>
-      <p class="hint" style="margin:0 0 12px">직접 지정해 둔 종류도 새로 덮어씁니다. 되돌릴 수 없으니, 걱정되면 먼저 공유 탭에서 <b>파일로 내보내기</b>로 백업해 두세요.</p>
+      <p style="margin:0 0 10px">저장된 맛집 전체를 <b>네이버 업종 기준</b>으로 다시 분류합니다. 네이버에서 찾지 못한 곳은 카카오 업종과 가게 이름으로 정리합니다.</p>
+      <p class="hint" style="margin:0 0 12px">직접 골라 둔 종류와 판단이 어려운 곳은 그대로 둡니다. 되돌릴 수는 없으니, 걱정되면 먼저 공유 탭에서 <b>파일로 내보내기</b>로 백업해 두세요.</p>
       <button class="btn full" id="recat">전체 다시 분류</button>
     </div>
     <div style="height:8px"></div>
@@ -1034,16 +1036,16 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {id:'sea',  name:'해물, 생선',  e:'🍣', c:'#3B6E8C'},
     {id:'meat', name:'고기',        e:'🥩', c:'#A54B38'},
     {id:'west', name:'양식',        e:'🍝', c:'#8A6A3B'},
-    {id:'asia', name:'아시안',      e:'🍛', c:'#B8862B'}
+    {id:'asia', name:'아시안',      e:'🍛', c:'#B8862B'},
+    {id:'bar',  name:'술집',        e:'🍺', c:'#5C6E2F'}
   ];
-  // 예전에 저장된 종류(일식·술집·기타)도 화면에 깨지지 않게 표시용으로만 남겨 둡니다
+  // 예전에 저장된 종류(일식·기타)도 화면에 깨지지 않게 표시용으로만 남겨 둡니다
   const CATS_LEGACY = {
     jpn: {id:'jpn', name:'일식', e:'🍣', c:'#3B6E8C'},
-    bar: {id:'bar', name:'술집', e:'🍺', c:'#5C6E2F'},
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v105';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = 'v109';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2020,40 +2022,80 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   }
 
   /* ================= 입력 ================= */
-  function guessCat(catName, groupCode){
-    const s=catName||'';
-    // 카페·디저트
-    if(groupCode==='CE7'||/카페|커피|디저트|베이커리|제과|빵|아이스크림|빙수|케이크|와플|도넛|차\b|떡(?!볶이)|한과|약과/.test(s)) return 'cafe';
-    // 치킨
-    if(/치킨|닭강정|통닭|후라이드|양념치킨|닭발|닭갈비/.test(s)) return 'chk';
-    // 패스트푸드
-    if(/햄버거|버거|피자|샌드위치|핫도그|토스트|패스트푸드|분식(?=.*버거)/.test(s)) return 'fast';
-    // 돈까스 (카카오 '돈까스,우동' 분류가 면·분식으로 밀리지 않게 먼저 판정 → 양식)
-    if(/돈까스|돈가스|돈카츠|돈까츠|카츠|가츠|커틀릿|커틀렛/.test(s)) return 'west';
-    // 해물·생선 (회·초밥·해산물 전부 여기로)
-    if(/해물|해산물|생선|회\b|물회|초밥|스시|사시미|롤|조개|굴|전복|낙지|주꾸미|문어|오징어|우럭|광어|아구|대게|꽃게|게장|새우|장어|복어|조개구이|해물찜|아나고/.test(s)) return 'sea';
-    // 찜·탕·국물
-    if(/찜|탕|국\b|전골|찌개|매운탕|지리|해장국|삼계탕|감자탕|설렁탕|곰탕|순대국|추어탕|보양/.test(s)) return 'jjim';
-    // 고기 (구이·정육)
-    if(/고기|삼겹|갈비|구이|정육|바베큐|바비큐|족발|보쌈|곱창|막창|양꼬치|불고기|육류/.test(s)) return 'meat';
-    // 중식
-    if(/중식|중국|짜장|짬뽕|마라|탕수육|양꼬치(?!.*고기)/.test(s)) return 'chn';
-    // 아시안 (카레·동남아·인도 등) — 쌀국수(국수), 카레 등이 다른 데로 밀리지 않게 먼저 판정
-    if(/카레|커리|아시안|아시아음식|쌀국수|포\b|팟타이|팟퐁|똠얌|나시고랭|미고랭|인도|타이|태국|베트남|월남쌈|분짜|반미|케밥|난\b|탄두리|사테|하이난|싱가포르|말레이/.test(s)) return 'asia';
-    // 양식
-    if(/양식|이탈리|파스타|스파게티|리조또|스테이크|프렌치|멕시칸|브런치|경양식/.test(s)) return 'west';
-    // 면·분식 (떡볶이·김밥 등 분식 + 국수·우동·라면 등 면류)
-    if(/분식|떡볶이|김밥|순대|튀김|어묵|오뎅|라면|우동|국수|칼국수|냉면|막국수|잔치국수|소바|쫄면|비빔면|만두/.test(s)) return 'bun';
-    // 한식 (일반)
-    if(/한식|백반|한정식|비빔밥|국밥|쌈밥|나물|돌솥|정식|가정식|보리밥|수제비/.test(s)) return 'kor';
-    return 'kor';   // 분류 애매하면 한식(한국앱 기본값)
+  // ── 종류 자동 분류 ──────────────────────────────────────────
+  // 원칙: ① 요리 종류가 재료보다 우선(해물칼국수→면, 고기국수→면)
+  //       ② 카카오 분류 경로는 가장 구체적인 끝 단어부터 확인
+  //       ③ 판단이 안 되면 null → 호출하는 쪽에서 기존 종류 유지
+  const CAT_RULES=[
+    // 예외: 이름에 '다방'이 들어간 떡볶이 체인 등 먼저 처리
+    ['bun',  /청년다방|떡볶이카페/],
+    ['cafe', /카페|커피|cafe|coffee|디저트|베이커리|베이킹|제과|빵집|빵|베이글|케이크|케익|마카롱|와플|크로플|도넛|도너츠|아이스크림|젤라또|젤라토|빙수|찻집|전통차|티하우스|떡집|떡카페|떡방|떡공방|떡케이크|떡,한과|떡한과|찰떡|찹쌀떡|인절미|백설기|송편|한과|약과|초콜릿|쇼콜라|쿠키|스콘|타르트|푸딩|탕후루|요거트|호두과자|간식|스타벅스|투썸|이디야|메가커피|메가mgc|컴포즈|빽다방|할리스|폴바셋|커피빈|엔제리너스|탐앤탐스|파스쿠찌|블루보틀|파리바게|뚜레쥬르|던킨|크리스피크림|배스킨|설빙|공차|쥬씨/i],
+    ['chn',  /중식|중국|중화|짜장|자장면|짬뽕|탕수육|마라|훠궈|딤섬|꿔바로우|양장피|깐풍|유린기|팔보채|반점|차이나|샤오롱바오/],
+    ['asia', /아시안|아시아|카레|커리|curry|쌀국수|팟타이|팟퐁|똠얌|분짜|반미|나시고랭|미고랭|월남쌈|베트남|태국|타이음식|타이요리|인도|인디아|네팔|탄두리|케밥|할랄|락사|하이난|싱가포르|말레이|몽골|우즈벡/i],
+    ['fast', /햄버거|버거|burger|피자|pizza|샌드위치|서브웨이|써브웨이|핫도그|토스트|패스트푸드|맥도날드|롯데리아|kfc|맘스터치|쉐이크쉑|쉑쉑|도미노|피자헛|파파존스|퀴즈노스|타코(?!야끼|야키)|부리또|브리또/i],
+    ['chk',  /치킨|chicken|통닭|닭강정|후라이드|프라이드|양념치킨|^bbq|비비큐|bhc|교촌|굽네|네네|처갓집|페리카나|멕시카나|호식이|또래오래|60계|푸라닭|지코바/i],
+    ['bar',  /이자카야|요리주점|포장마차|포차|호프|와인바|칵테일|주점|술집|로바다|맥주|비어|펍|pub|하이볼|위스키|칵테일바|와인|막걸리집|선술집|실내포장/i],
+    ['west', /돈까스|돈가스|돈카츠|돈까츠|카츠|가츠|커틀릿|커틀렛|함박|함바그|오므라이스|경양식/],
+    ['west', /양식|이탈리|이태리|파스타|스파게티|리조또|라자냐|뇨끼|스테이크|steak|비스트로|bistro|트라토리아|오스테리아|프렌치|프랑스|멕시칸|멕시코|스페인|빠에야|브런치|패밀리레스토랑|아웃백|빕스|애슐리/i],
+    ['jjim', /전골|찌개|샤브/],
+    ['bun',  /칼국수|국수|국숫|라면|라멘|우동|소바|냉면|밀면|막국수|쫄면|비빔면|면옥|면가|수제비|만두|교자/],
+    ['sea',  /해물|해산물|수산|생선|횟집|회센터|회타운|^회$|모듬회|숙성회|활어|물회|회덮밥|회무침|참치|연어|초밥|스시|사시미|오마카세|마끼|조개|굴국|굴찜|굴구이|굴밥|생굴|석굴|전복|낙지|주꾸미|쭈꾸미|문어|오징어|한치|우럭|광어|도미|옥돔|갈치|고등어|삼치|방어|꽁치|전어|대구탕|대구뽈|아귀|아구|대게|꽃게|킹크랩|크랩|랍스터|랍스타|게장|게요리|새우|대하|장어|복어|복국|복집|홍어|과메기|해신탕|성게|보말|해삼|멍게|소라|꼬막|바지락|홍합|가리비|매운탕|복지리|지리탕|해물탕|알탕|동태|명태|황태|코다리|일식|일본식(?!주점)/],
+    ['jjim', /찜|탕|국밥|해장국|순대국|순댓국|곰탕|설렁탕|설농탕|백숙|닭한마리|보양|추어|육개장|선지|내장국/],
+    ['kor',  /쌈밥|비빔밥|한정식|백반|정식|가정식|기사식당|보리밥|솥밥|돌솥/],
+    ['meat', /고기|육류|정육|식육|숯불|구이|삼겹|오겹|목살|항정|가브리|갈비|불고기|두루치기|제육|주물럭|돼지|흑돼지|돔베|한우|소고기|쇠고기|우대|차돌|등심|안심|꽃살|육회|육사시미|곱창|막창|대창|곱도리|족발|보쌈|수육|오리(?!지|진)|닭갈비|닭발|닭구이|닭요리|양꼬치|양갈비|양고기|닭꼬치|바베큐|바비큐|훈제|화로|연탄/],
+    ['bun',  /분식|떡볶이|떡볶기|김밥|순대|튀김|어묵|오뎅|핫바|떡꼬치|주먹밥|컵밥|라볶이|쫄볶이|타코야끼|타코야키|호떡/],
+    ['kor',  /한식|식당|밥집|밥상|죽(?!도)|두부|순두부|청국장|된장|나물|뷔페|도시락|덮밥|규동|텐동|김치|떡국|떡만두국|전집|빈대떡|파전|부침|막걸리|주막/]
+  ];
+  function catFromText(raw){
+    const s=(raw||'').replace(/\s+/g,'');
+    if(!s) return null;
+    for(const [id,re] of CAT_RULES){ if(re.test(s)) return id; }
+    return null;
+  }
+  // path: 카카오 분류 경로 또는 세부업종 / group: 카카오 그룹코드 / name: 가게 이름
+  function guessCat(path, groupCode, name){
+    const segs=(path||'').split('>').map(x=>x.trim()).filter(Boolean).reverse();
+    const fromName=catFromText(name||'');
+    for(const seg of segs){
+      const r=catFromText(seg);
+      // 술집 분류인데 이름이 치킨집이면 치킨 (치킨호프 등)
+      if(r==='bar' && fromName==='chk') return 'chk';
+      if(!r) continue;
+      const t=seg.replace(/\s/g,'');
+      // 카카오 '순대' 분류는 순대국집이 대부분 → 한식 아래거나 이름에 '국'이 있으면 찜·탕
+      if(t==='순대') return (/한식/.test(path) || /국/.test(name||'')) ? 'jjim' : (fromName||'bun');
+      // '한식'처럼 넓은 분류면 이름이 더 구체적일 때 이름을 따름 (칼국수·감자탕·흑돼지 등)
+      if(r==='kor' && t==='한식' && fromName) return fromName;
+      // 재료 분류(해물·고기)인데 이름이 면·중식 요리면 요리를 따름 (해물칼국수, 고기국수, 해물짬뽕)
+      if((r==='sea'||r==='meat') && (fromName==='bun'||fromName==='chn')) return fromName;
+      return r;
+    }
+    if(groupCode==='CE7') return 'cafe';
+    return fromName;
+  }
+  // 네이버 업종 조회 (Supabase 함수 naver-cat 경유 — 네이버 키는 서버에만 있음)
+  // items: [{name, addr, lat, lng}] → 네이버 업종 문자열 배열, 실패하면 null
+  async function naverLookup(items){
+    if(!cloudOn() || !items.length) return null;
+    try{
+      const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(), 25000);
+      const r=await fetch(sbBase()+'/functions/v1/naver-cat',{
+        method:'POST', signal:ctl.signal,
+        headers:{'Content-Type':'application/json','apikey':sbKey(),'Authorization':'Bearer '+sbKey()},
+        body:JSON.stringify({items})
+      });
+      clearTimeout(tm);
+      if(!r.ok) return null;
+      const d=await r.json();
+      return Array.isArray(d.cats) ? d.cats : null;
+    }catch(e){ return null; }
   }
   function renderCats(){
     const g=$('#catgrid'); g.innerHTML='';
     CATS.forEach(c=>{
       const b=el('button','cat'+(draft.cat===c.id?' on':''));
       b.innerHTML='<span class="e">'+c.e+'</span>'+c.name;
-      b.onclick=()=>{ draft.cat=c.id; renderCats(); if(draft.lat) setCoord(draft.lat,draft.lng,true); };
+      b.onclick=()=>{ draft.cat=c.id; draft.catManual=true; renderCats(); if(draft.lat) setCoord(draft.lat,draft.lng,true); };
       g.appendChild(b);
     });
   }
@@ -2094,7 +2136,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const lat=parseFloat(it.y), lng=parseFloat(it.x);
     $('#f-name').value=it.place_name||$('#f-name').value;
     $('#f-addr').value=it.road_address_name||it.address_name||'';
-    if(it.category_name||it.category_group_code) draft.cat=guessCat(it.category_name,it.category_group_code);
+    const gc=guessCat(it.category_name,it.category_group_code,it.place_name);
+    if(gc){ draft.cat=gc; draft.catManual=false; }
+    draft.kcat=it.category_name||''; draft.kgroup=it.category_group_code||'';
+    draft.ncat=''; draft.ncatChecked=0;
+    if(it.place_name){
+      const tk=draft._ntk=Date.now()+Math.random();
+      naverLookup([{name:it.place_name, addr:it.road_address_name||it.address_name||'', lat, lng}]).then(res=>{
+        if(!res || draft._ntk!==tk) return;          // 실패했거나 그사이 다른 가게를 골랐으면 무시
+        draft.ncat=res[0]||''; draft.ncatChecked=Date.now();
+        const ng=guessCat(draft.ncat,'','');
+        if(ng && !draft.catManual && $('#sheet').classList.contains('on')){ draft.cat=ng; renderCats(); if(draft.lat) setCoord(draft.lat,draft.lng,true); }
+      });
+    }
     // 카카오 세부 업종명(예: "음식점 > 해물,생선 > 게요리")의 맨 끝을 저장 → 검색에 활용
     draft.catName = (it.category_name||'').split('>').pop().trim();
     if($('#f-catname')) $('#f-catname').value = draft.catName;
@@ -2440,7 +2494,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function openSheet(id){
     editing=id||null;
     const p=id?state.places.find(x=>x.id===id):null;
-    draft={rating:p?p.rating:0, cat:p?p.cat:'kor', catName:p?(p.catName||''):'', lat:p?p.lat:null, lng:p?p.lng:null, url:p?(p.url||''):''};
+    draft={rating:p?p.rating:0, cat:p?p.cat:'kor', catName:p?(p.catName||''):'', kcat:p?(p.kcat||''):'', kgroup:p?(p.kgroup||''):'', ncat:p?(p.ncat||''):'', ncatChecked:p?(p.ncatChecked||0):0, catManual:p?!!p.catManual:false, lat:p?p.lat:null, lng:p?p.lng:null, url:p?(p.url||''):''};
     $('#sheettitle').textContent=p?'기록 고치기':'맛집 남기기';
     $('#f-name').value=p?p.name:'';
     $('#f-addr').value=p?(p.addr||''):'';
@@ -2509,7 +2563,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       addr, memo:$('#f-memo').value.trim(),
       tags:$('#f-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
       visited:$('#f-date').value, folder:$('#f-folder').value,
-      lat:draft.lat, lng:draft.lng, url:draft.url, public:isPublic, updated:Date.now() };
+      lat:draft.lat, lng:draft.lng, url:draft.url, public:isPublic,
+      kcat:draft.kcat||'', kgroup:draft.kgroup||'', ncat:draft.ncat||'', ncatChecked:draft.ncatChecked||0,
+      catManual:!!draft.catManual, updated:Date.now() };
     let saved;
     if(editing){
       const i=state.places.findIndex(x=>x.id===editing);
@@ -2613,18 +2669,45 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   // 저장된 맛집 전체를 지금 기준으로 다시 분류
   $('#recat').onclick=async()=>{
     if(!state.places.length){ toast('분류할 맛집이 없습니다.'); return; }
-    // 바뀔 개수를 먼저 계산해 미리 보여줍니다
-    let changed=0;
+    const valid=id=>CATS.some(c=>c.id===id);
+    const btn=$('#recat'), label=btn.textContent;
+    // 1) 네이버 업종 확인 — 아직 확인 안 한 곳만 (못 찾은 곳은 30일 뒤 다시 확인)
+    const need=state.places.filter(p=>!(p.catManual && valid(p.cat)) && p.name &&
+      (!p.ncatChecked || (!p.ncat && Date.now()-p.ncatChecked>30*864e5)));
+    let naverOk=true;
+    if(need.length){
+      btn.disabled=true;
+      for(let i=0;i<need.length;i+=20){
+        btn.textContent='네이버 업종 확인 중… '+Math.min(i+20,need.length)+' / '+need.length;
+        const chunk=need.slice(i,i+20);
+        const res=await naverLookup(chunk.map(p=>({name:p.name, addr:p.addr||'', lat:p.lat??null, lng:p.lng??null})));
+        if(!res){ naverOk=false; break; }
+        chunk.forEach((p,j)=>{ p.ncat=res[j]||''; p.ncatChecked=Date.now(); });
+      }
+      btn.textContent=label; btn.disabled=false;
+      await saveLocal();   // 확인한 업종만 저장 (종류는 아직 그대로)
+    }
+    // 2) 종류 결정: 직접 고른 곳 유지 → 네이버 업종 → 카카오 업종 → 가게 이름 → 판단 안 되면 유지
+    let changed=0, kept=0, manual=0;
     const plan=state.places.map(p=>{
-      const basis=(p.catName&&p.catName.trim()) ? p.catName : p.name;   // 세부업종 우선, 없으면 이름
-      const nc=guessCat(basis);
+      if(p.catManual && valid(p.cat)){ manual++; return p.cat; }
+      const nc=guessCat(p.ncat,'','') || guessCat(p.kcat||p.catName, p.kgroup, p.name);
+      if(!nc){ kept++; return p.cat; }
       if(nc!==p.cat) changed++;
       return nc;
     });
-    if(changed===0){ toast('이미 모두 지금 기준으로 분류되어 있습니다.'); return; }
-    if(!confirm('맛집 '+state.places.length+'곳 중 '+changed+'곳의 종류가 바뀝니다.\n직접 지정한 종류도 덮어씁니다. 진행할까요?')) return;
-    state.places.forEach((p,i)=>{ p.cat=plan[i]; p.updated=Date.now(); });
+    const note=naverOk?'':'\n(네이버 확인이 안 되는 상태라 이번엔 카카오 기준으로 분류합니다.)';
+    if(changed===0){ toast('바꿀 곳이 없습니다. 이미 지금 기준으로 분류되어 있습니다.'); if(!naverOk) setTimeout(()=>toast('네이버 업종 확인에 실패했습니다. 잠시 뒤 다시 시도해 주세요.'),2200); return; }
+    let msg='맛집 '+state.places.length+'곳 중 '+changed+'곳의 종류가 바뀝니다.';
+    if(manual) msg+='\n직접 고른 '+manual+'곳은 그대로 둡니다.';
+    if(kept) msg+='\n판단이 어려운 '+kept+'곳도 지금 종류를 유지합니다.';
+    if(!confirm(msg+note+'\n진행할까요?')) return;
+    const republish=[];
+    state.places.forEach((p,i)=>{
+      if(plan[i]!==p.cat){ p.cat=plan[i]; p.updated=Date.now(); if(p.public && p.lat) republish.push(p); }
+    });
     await saveLocal(); schedulePush();
+    republish.forEach(p=>Spots.put(p));   // 주변맛집에 공개된 곳도 새 종류로 갱신
     renderList(); drawPins(); renderPick();
     toast(changed+'곳을 다시 분류했습니다.');
     closeSettings();
