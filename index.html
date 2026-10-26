@@ -1049,7 +1049,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = 'v111';   // 화면에서 현재 버전을 확인하는 용도 (설정·검색결과에 표시)
+  const APP_BUILD = '1.0.0';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2614,7 +2614,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   }
   /* ================= 일반 설정 시트 ================= */
   function openSettings(){
-    $('#buildtag').textContent='버전 1.0.0 · '+APP_BUILD;
+    $('#buildtag').textContent='버전 '+APP_BUILD;
     $('#scrim').classList.add('on'); $('#setsheet').classList.add('on');
   }
   function closeSettings(){ $('#scrim').classList.remove('on'); $('#setsheet').classList.remove('on'); }
@@ -2938,9 +2938,13 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   /* ================= 백업 ================= */
   $('#exportfile').onclick=()=>{
-    const blob=new Blob([JSON.stringify({places:state.places},null,2)],{type:'application/json'});
-    const a=el('a'); a.href=URL.createObjectURL(blob); a.download='대한민국어디까지-백업.json'; a.click();
-    URL.revokeObjectURL(a.href);
+    const d=new Date(), z=n=>String(n).padStart(2,'0');
+    const stamp=d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes());
+    const blob=new Blob([JSON.stringify({savedAt:d.toISOString(), app:APP_BUILD, places:state.places},null,2)],{type:'application/json'});
+    const a=el('a'); a.href=URL.createObjectURL(blob); a.download='beyondkorea-backup-'+stamp+'.json';  // 한글 파일명은 일부 기기에서 'download'로 바뀌어 영문으로
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+    toast('백업 파일을 저장했습니다 ('+stamp.replace('_',' ').replace(/(\d\d)(\d\d)$/,'$1:$2')+')');
   };
   $('#importfile').onclick=()=>$('#filein').click();
   $('#filein').onchange=e=>{
