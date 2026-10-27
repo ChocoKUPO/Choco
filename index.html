@@ -1074,7 +1074,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = '1.0.3';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
+  const APP_BUILD = '1.0.4';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -2661,14 +2661,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     {ic:gIc('<path d="M9.5 13.5 14 9M10 6.5l1.8-1.8a3.3 3.3 0 0 1 4.7 4.7l-1.8 1.8M14 17.5l-1.8 1.8a3.3 3.3 0 0 1-4.7-4.7l1.8-1.8"/>'), t:'통째로 공유하고 백업해요',
      d:'<b>공유</b> 탭에서 고른 맛집을 <b>코드</b>나 <b>파일</b>로 친구에게 보낼 수 있어요. <b>파일로 내보내기</b>를 하면 내 맛집 전체가 날짜가 붙은 파일로 백업돼요.'},
     {ic:gIc('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.3 3.5-5 7-5s6.3 1.7 7 5"/>'), t:'로그인하면 어디서든 그대로',
-     d:'<b>프로필</b> 탭에서 카카오 로그인을 하면 기록이 계정에 보관돼 폰을 바꿔도 그대로 남아요. 이 안내는 <b>톱니 → 사용법 가이드</b>에서 언제든 다시 볼 수 있어요.',
-     more:true}
+     d:'<b>프로필</b> 탭에서 카카오 로그인을 하면 기록이 계정에 보관돼 폰을 바꿔도 그대로 남아요. 이 안내는 <b>톱니 → 사용법 가이드</b>에서 언제든 다시 볼 수 있어요.'}
   ];
   let guideIdx=0;
   function paintGuide(){
     const st=GUIDE_STEPS[guideIdx], last=guideIdx===GUIDE_STEPS.length-1;
-    $('#guide-body').innerHTML='<div class="guide-ic">'+st.ic+'</div><h3 class="guide-t">'+st.t+'</h3><p class="guide-d">'+st.d+'</p>'+
-      (st.more?'<a class="guide-more" href="https://chocokupo.github.io/guide.html" target="_blank" rel="noopener">자세한 사용법 보기 →</a>':'');
+    $('#guide-body').innerHTML='<div class="guide-ic">'+st.ic+'</div><h3 class="guide-t">'+st.t+'</h3><p class="guide-d">'+st.d+'</p>';
     $('#guide-count').textContent=(guideIdx+1)+' / '+GUIDE_STEPS.length;
     $('#guide-dots').innerHTML=GUIDE_STEPS.map((_,i)=>'<i'+(i===guideIdx?' class="on"':'')+'></i>').join('');
     $('#guide-prev').style.display=guideIdx===0?'none':'';
