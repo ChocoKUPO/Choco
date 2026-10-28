@@ -189,7 +189,8 @@
   .vcopy{flex:0 0 auto;align-self:center;font-size:12px;font-weight:750;color:var(--celadon);letter-spacing:-.02em;
     padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
   .vcopy:active{transform:scale(.96)}
-  #viewedit[hidden]{visibility:hidden;display:inline}
+  .vmemo2.empty{border-left-color:var(--line);color:var(--ink-faint);font-size:13.5px}
+  #viewedit[hidden],#viewsheet.readonly #viewedit{visibility:hidden;pointer-events:none;display:inline}
   .vhero{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
   .vhero .vemoji{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
     font-size:26px;flex:0 0 52px;color:#fff}
@@ -783,7 +784,7 @@
     <h2 id="sheettitle">맛집 남기기</h2>
     <button id="save" style="color:var(--celadon)">저장</button>
     <label class="pub-line" for="f-public">
-      <span class="pub-t">🌏 <b>주변맛집에 공개</b><small>이름·주소·별점만 공개</small></span>
+      <span class="pub-t">🌏 <b>주변맛집에 공개</b><small>이름·주소·별점·메모 공개</small></span>
       <input type="checkbox" id="f-public">
     </label>
   </div>
@@ -843,7 +844,7 @@
       <input type="text" id="f-tags" placeholder="예: 혼밥, 주차가능, 웨이팅">
     </div>
     <div class="field">
-      <label for="f-memo">한 줄 기록</label>
+      <label for="f-memo">메모</label>
       <textarea id="f-memo" placeholder="뭐가 맛있었는지, 다음에 뭘 시킬지"></textarea>
     </div>
     <div style="height:12px"></div>
@@ -1074,7 +1075,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = '1.0.4';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
+  const APP_BUILD = '1.0.1';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1100,6 +1101,8 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     '  updated_at timestamptz not null default now()',
     ');',
     'alter table public.spots enable row level security;',
+    'alter table public.spots add column if not exists "catName" text default \'\';',
+    'alter table public.spots add column if not exists memo text default \'\';',
     '',
     'drop policy if exists "read own"   on public.notes;',
     'drop policy if exists "insert own" on public.notes;',
@@ -1111,11 +1114,15 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     '',
     'create policy "read own"   on public.notes for select using (auth.uid() = user_id);',
     'create policy "insert own" on public.notes for insert with check (auth.uid() = user_id);',
-    'create policy "update own" on public.notes for update using (auth.uid() = user_id);',
+    'create policy "update own" on public.notes for update using (auth.uid() = user_id) with check (auth.uid() = user_id);',
     'create policy "spots read all"    on public.spots for select using (true);',
     'create policy "spots insert own"  on public.spots for insert with check (auth.uid() = user_id);',
-    'create policy "spots update own"  on public.spots for update using (auth.uid() = user_id);',
-    'create policy "spots delete own"  on public.spots for delete using (auth.uid() = user_id);'
+    'create policy "spots update own"  on public.spots for update using (auth.uid() = user_id) with check (auth.uid() = user_id);',
+    'create policy "spots delete own"  on public.spots for delete using (auth.uid() = user_id);',
+    'alter table public.spots drop constraint if exists spots_id_owner;',
+    'alter table public.spots add constraint spots_id_owner check (id like user_id::text || \':%\') not valid;',
+    'alter table public.spots drop constraint if exists spots_sane;',
+    'alter table public.spots add constraint spots_sane check (rating between 0 and 5 and char_length(name) <= 100 and char_length(coalesce(addr,\'\')) <= 200 and char_length(coalesce(memo,\'\')) <= 500 and char_length(coalesce(url,\'\')) <= 300) not valid;'
   ].join('\n');
 
   /* ┌────────────────────────────────────────────────────────────┐
@@ -1152,7 +1159,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const el = (t,c) => { const n=document.createElement(t); if(c) n.className=c; return n; };
   const cat = id => CATS.find(c=>c.id===id) || CATS_LEGACY[id] || {id:'etc',name:'기타',e:'🍽',c:'#5E6B64'};
   const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-  const esc = s => (s||'').replace(/[<>&"]/g, m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+  const esc = s => String(s==null?'':s).replace(/[<>&"]/g, m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
   const pinHTML = c => '<div class="pin" style="background:'+c.c+'"><span>'+c.e+'</span></div>';
   // 기기에 넣은 값 → 없으면 소스에 심은 값
   const sbURL = () => ((state.sb.url||'').trim() || (BUILTIN_SB_URL||'').trim());
@@ -1326,10 +1333,15 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         const row=[{ id:session.user.id+':'+p.id, user_id:session.user.id,
           name:p.name, addr:p.addr||'', cat:p.cat||'etc', catName:p.catName||'', rating:p.rating||0,
           lat:p.lat, lng:p.lng, url:p.url||'',
+          // 메모는 '메모 공개' 안내를 보고 저장한 맛집만 올림 (예전에 공개한 맛집의 메모는 올리지 않음)
+          memo:(p.pubMemo && p.memo) ? String(p.memo).slice(0,500) : '',
           by_name:'', updated_at:new Date().toISOString() }];
-        await fetch(sbBase()+'/rest/v1/spots',{method:'POST',
+        const send=rows=>fetch(sbBase()+'/rest/v1/spots',{method:'POST',
           headers:Auth.hdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
-          body:JSON.stringify(row)});
+          body:JSON.stringify(rows)});
+        const r=await send(row);
+        // 서버 표에 memo 칸이 아직 없으면 메모 없이 다시 올림
+        if(!r.ok){ delete row[0].memo; await send(row); }
       }catch(e){}
     },
     async remove(pid){
@@ -1346,10 +1358,29 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       try{
         const r=await fetch(sbBase()+'/rest/v1/spots?select=*&limit=1000',{headers:{'apikey':sbKey()}});
         if(!r.ok) return null;
-        return await r.json();
+        const d=await r.json();
+        return Array.isArray(d) ? d.map(cleanSpot).filter(Boolean) : null;
       }catch(e){ return null; }
     }
   };
+
+  // 다른 사람이 올린 공개 맛집은 그대로 믿지 않고 모양·길이·주소(링크)를 정리해서 씁니다
+  const txt=(v,n)=>String(v==null?'':v).replace(/[\u0000-\u001F\u007F]/g,' ').slice(0,n);
+  const rate5=v=>{ const n=parseInt(v,10); return isFinite(n)?Math.max(0,Math.min(5,n)):0; };
+  function safeKakaoUrl(u){
+    try{ const x=new URL(String(u||'')); 
+      if(x.protocol==='https:' || x.protocol==='http:'){ if(/(^|\.)kakao\.com$/i.test(x.hostname)) return x.href; }
+    }catch(e){}
+    return '';
+  }
+  function cleanSpot(o){
+    if(!o || typeof o!=='object') return null;
+    const lat=Number(o.lat), lng=Number(o.lng);
+    if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180) return null;
+    const name=txt(o.name,80).trim(); if(!name) return null;
+    return { id:txt(o.id,120), user_id:txt(o.user_id,60), name, addr:txt(o.addr,160), cat:txt(o.cat,10),
+      catName:txt(o.catName,40), rating:rate5(o.rating), lat, lng, url:safeKakaoUrl(o.url), memo:txt(o.memo,500) };
+  }
 
   function schedulePush(){
     if(!session) return;
@@ -1523,7 +1554,8 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     box.innerHTML='';
     shown.forEach(s=>{
       const c=cat(s.cat);
-      const stars='★'.repeat(s.rating||0)+'<span class="off">'+'★'.repeat(5-(s.rating||0))+'</span>';
+      const sr=rate5(s.rating);
+      const stars='★'.repeat(sr)+'<span class="off">'+'★'.repeat(5-sr)+'</span>';
       const kindLine=[c.name, (s.catName&&s.catName.trim())?s.catName.trim():''].filter(Boolean).join(' · ');
       const card=el('div','nb-card');
       card.innerHTML=
@@ -2453,7 +2485,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   }
   function kakaoPlaceUrl(place){
     // 저장 때 받아둔 정확한 카카오 장소 페이지가 있으면 그걸 우선 엽니다.
-    if(place.url) return place.url;
+    const ku=safeKakaoUrl(place.url); if(ku) return ku;
     // 좌표가 있으면 지도를 그 지점 중심으로 열어 정확한 가게가 잡히게 합니다.
     if(place.lat && place.lng){
       return 'https://map.kakao.com/link/map/'+encodeURIComponent(place.name.trim())+','+place.lat+','+place.lng;
@@ -2468,9 +2500,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const spot = (typeof arg==='object' && arg) ? arg : null;
     const p = spot || state.places.find(x=>x.id===arg); if(!p) return;
     viewing = spot ? null : p.id; viewSpot = spot;
+    $('#viewsheet').classList.toggle('readonly', !!spot);
     const c=cat(p.cat);
     const kind=[c.name, (p.catName||'').trim()].filter(Boolean).join(' · ');
-    const r=p.rating||0;
+    const r=rate5(p.rating);
     const stars='★'.repeat(r)+'<span class="off">'+'★'.repeat(5-r)+'</span>'+
       (spot ? '<span class="lbl">'+(r?'공개한 사람의 별점':'별점 없음')+'</span>' : (r?'':'<span class="lbl">아직 별점 없음</span>'));
     const tags=(p.tags||[]).map(t=>'<span class="tag plain">#'+esc(t)+'</span>').join('');
@@ -2493,27 +2526,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         '<a href="'+esc(naverPlaceUrl(p))+'" target="_blank" rel="noopener"><span class="ico nv">N</span>네이버 지도</a>'+
         '<a href="'+esc(kakaoPlaceUrl(p))+'" target="_blank" rel="noopener"><span class="ico kk">K</span>카카오맵</a>'+
       '</div>'+
-      (!spot && p.memo ? '<div class="vmemo2" style="--cc:'+c.c+'">'+esc(p.memo)+'</div>' : '')+
       (tags ? '<div class="vmeta">'+tags+'</div>' : '')+
       rows+
-      (p.lat?'<div class="vsub">위치</div><div id="viewmap"></div>':'');
+      '<div class="vsub">메모</div>'+(p.memo ? '<div class="vmemo2" style="--cc:'+c.c+'">'+esc(p.memo)+'</div>'
+        : '<div class="vmemo2 empty">'+(spot?'공개한 사람이 남긴 메모가 없어요.':'아직 메모가 없어요. 오른쪽 위 <b>수정</b>에서 남길 수 있어요.')+'</div>');
 
     const cp=$('#vcopy'); if(cp) cp.onclick=()=>copyText(p.addr,'주소를 복사했습니다.');
     $('#scrim').classList.add('on'); $('#viewsheet').classList.add('on');
     $('#viewsheet').scrollTop=0;
-
-    if(p.lat){
-      setTimeout(()=>{
-        if(viewMap && provider==='leaflet'){ try{ viewMap.m.remove(); }catch(e){} viewMap=null; }
-        const vm=$('#viewmap'); if(!vm) return; vm.innerHTML='';
-        try{
-          viewMap=M.create('viewmap',{lat:p.lat,lng:p.lng},'close',null);
-          lockScroll(vm, $('#viewsheet'));
-          M.marker(viewMap,p.lat,p.lng,c,null);
-          M.resize(viewMap); M.move(viewMap,p.lat,p.lng,'close');
-        }catch(e){}
-      },320);
-    }
   }
   // 글자 복사 (클립보드 API가 막힌 앱 화면에서도 되도록 예비 방법 포함)
   async function copyText(t, msg){
@@ -2529,7 +2549,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   function closeViewer(){ $('#scrim').classList.remove('on'); $('#viewsheet').classList.remove('on'); viewSpot=null; }
 
   $('#viewclose').onclick=closeViewer;
-  $('#viewedit').onclick=()=>{ const id=viewing; if(!id) return; closeViewer(); setTimeout(()=>openSheet(id),180); };
+  $('#viewedit').onclick=()=>{
+    // 주변맛집(남의 맛집)은 어떤 경우에도 편집 화면을 열지 않음 — 내 목록에 실제로 있는 내 맛집만
+    if(viewSpot || !viewing || !state.places.some(x=>x.id===viewing)) return;
+    const id=viewing; closeViewer(); setTimeout(()=>openSheet(id),180);
+  };
 
   function openSheet(id){
     editing=id||null;
@@ -2605,7 +2629,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       visited:$('#f-date').value, folder:$('#f-folder').value,
       lat:draft.lat, lng:draft.lng, url:draft.url, public:isPublic,
       kcat:draft.kcat||'', kgroup:draft.kgroup||'', ncat:draft.ncat||'', ncatChecked:draft.ncatChecked||0,
-      catManual:!!draft.catManual, updated:Date.now() };
+      catManual:!!draft.catManual, pubMemo:isPublic, updated:Date.now() };
     let saved;
     if(editing){
       const i=state.places.findIndex(x=>x.id===editing);
@@ -2623,7 +2647,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       Spots.remove(saved.id);
     }
     closeSheet(); renderList(); drawPins();
+    if(!editing) noticeOthersSame(saved);
   };
+  // 같은 가게를 다른 사람이 주변맛집에 공개해 두었으면 '알림만' 띄움 — 그 사람 기록은 읽기만 하고 절대 건드리지 않음
+  async function noticeOthersSame(mine){
+    try{
+      const rows = Array.isArray(nearbyState.rows) ? nearbyState.rows : await Spots.near(0,0);
+      if(!Array.isArray(rows)) return;
+      const me = session && session.user ? session.user.id : '';
+      const n=normStr(mine.name), a=normStr(mine.addr);
+      const other=rows.find(s=>s.user_id!==me && normStr(s.name)===n && (!a || !normStr(s.addr) || normStr(s.addr)===a));
+      if(other) setTimeout(()=>toast('주변맛집에 다른 사람이 공개한 같은 가게가 있어요. 그 기록은 그대로 두고 내 맛집으로 따로 저장했어요.'),1600);
+    }catch(e){}
+  }
 
   // 맛집 하나를 삭제 (편집 시트·뷰어·목록에서 공용으로 사용)
   async function deletePlace(id, name){
@@ -2651,11 +2687,11 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const gIc=p=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
   const GUIDE_STEPS=[
     {ic:gIc('<path d="M12 5v14M5 12h14"/>'), t:'맛있게 먹은 곳, 위치까지 남겨요',
-     d:'오른쪽 아래 <b>+ 버튼</b>을 누르고 <b>가게 찾아서 채우기</b>에 지역과 가게 이름을 넣으면 주소·위치·종류가 자동으로 채워져요. 별점과 한 줄 메모만 더하면 끝이에요.'},
+     d:'오른쪽 아래 <b>+ 버튼</b>을 누르고 <b>가게 찾아서 채우기</b>에 지역과 가게 이름을 넣으면 주소·위치·종류가 자동으로 채워져요. 별점과 메모만 더하면 끝이에요.'},
     {ic:gIc('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>'), t:'목록에서 다시 찾아요',
      d:'<b>목록</b> 탭에서 가게 이름·메모·태그로 검색하고, 한식·면·분식·술집 같은 <b>종류</b>(12가지)로 걸러 볼 수 있어요. 카드를 누르면 블로그 후기·네이버 지도·카카오맵 바로가기가 있는 보기 화면이 열려요.'},
     {ic:gIc('<path d="M12 21c4.5-4.2 7-7.6 7-11a7 7 0 1 0-14 0c0 3.4 2.5 6.8 7 11Z"/><circle cx="12" cy="10" r="2.5"/>'), t:'주변맛집을 둘러봐요',
-     d:'<b>주변맛집</b> 탭은 지금 있는 도시에 다른 사람들이 공개한 맛집을 <b>가까운 순</b>으로 보여줘요. 카드를 누르면 블로그 후기·지도와 주소를 볼 수 있어요. 저장 화면 맨 위 <b>🌏 주변맛집에 공개</b>에 체크하면 내 맛집도 올라가요.'},
+     d:'<b>주변맛집</b> 탭은 지금 있는 도시에 다른 사람들이 공개한 맛집을 <b>가까운 순</b>으로 보여줘요. 카드를 누르면 블로그 후기·지도 바로가기와 공개한 사람의 메모를 볼 수 있어요. 저장 화면 맨 위 <b>🌏 주변맛집에 공개</b>에 체크하면 내 맛집도 올라가요.'},
     {ic:gIc('<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>'), t:'혼자라도 괜찮아요',
      d:'<b>나홀로</b> 탭에서 혼자 떠나기 좋은 <b>여행지</b>와 눈치 없이 먹기 좋은 <b>혼밥 맛집</b>을 추천받을 수 있어요.'},
     {ic:gIc('<path d="M9.5 13.5 14 9M10 6.5l1.8-1.8a3.3 3.3 0 0 1 4.7 4.7l-1.8 1.8M14 17.5l-1.8 1.8a3.3 3.3 0 0 1-4.7-4.7l1.8-1.8"/>'), t:'통째로 공유하고 백업해요',
@@ -2946,16 +2982,16 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       }else if(Array.isArray(data.places)){
         incoming=data.places;
       }else{ throw 0; }
-      let added=0;
+      let added=0, dupN=0;
       incoming.forEach(p=>{
         if(!p.name) return;
-        if(findDuplicate(p.name, p.addr)) return;
+        if(findDuplicate(p.name, p.addr)){ dupN++; return; }   // 이미 있는 곳은 건드리지 않고 건너뜀
         state.places.unshift(Object.assign({}, p, {id:uid(),created:Date.now(),updated:Date.now(),folder:'가보고 싶은 곳',public:false}));
         added++;
       });
       await saveLocal(); schedulePush();
       renderList(); drawPins(); renderPick(); $('#incode').value='';
-      toast(added?added+'곳을 담았습니다.':'이미 다 가지고 있는 곳입니다.');
+      toast(added ? added+'곳을 담았습니다.'+(dupN?' 이미 있는 '+dupN+'곳은 그대로 두었습니다.':'') : '이미 다 가지고 있는 곳입니다. 기존 기록은 그대로 두었습니다.');
     }catch(e){ toast('코드를 읽지 못했습니다. 전체를 다시 붙여넣어 주세요.'); }
   };
 
@@ -2976,9 +3012,19 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     r.onload=async()=>{
       try{
         const d=JSON.parse(r.result); if(!Array.isArray(d.places)) throw 0;
-        state.places=mergePlaces(d.places, state.places);
+        // 파일 안의 맛집으로 지금 있는 맛집을 덮어쓰지 않음: 같은 번호·같은 가게는 건너뛰고 새 곳만 추가
+        const ids=new Set(state.places.map(x=>x.id));
+        let added=0, dupN=0;
+        d.places.forEach(p=>{
+          if(!p || typeof p!=='object' || !p.name) return;
+          if((p.id && ids.has(p.id)) || findDuplicate(p.name, p.addr)){ dupN++; return; }
+          const np=Object.assign({}, p, {id:p.id||uid()});
+          np.rating=rate5(np.rating); ids.add(np.id);
+          state.places.push(np); added++;
+        });
         await saveLocal(); schedulePush();
-        renderList(); drawPins(); renderPick(); toast('백업을 합쳤습니다.');
+        renderList(); drawPins(); renderPick();
+        toast(added ? added+'곳을 불러왔습니다.'+(dupN?' 이미 있는 '+dupN+'곳은 그대로 두었습니다.':'') : '이미 다 있는 곳입니다. 기존 기록은 그대로 두었습니다.');
       }catch(_){ toast('파일을 읽지 못했습니다.'); }
     };
     r.readAsText(f);
