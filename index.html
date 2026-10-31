@@ -331,7 +331,7 @@
   .nb-scope button{padding:9px 4px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink-soft);letter-spacing:-.03em;white-space:nowrap}
   .nb-scope button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
   .nb-area{display:flex;gap:6px}.nb-area[hidden]{display:none}
-  .nb-area input,.nb-search input{flex:1;min-width:0;width:100%;box-sizing:border-box;padding:11px 13px;border-radius:11px;border:1px solid var(--line);
+  .nb-area input{flex:1;min-width:0;width:100%;box-sizing:border-box;padding:11px 13px;border-radius:11px;border:1px solid var(--line);
     background:var(--surface);color:var(--ink);font-size:14px;letter-spacing:-.02em}
   .nb-area .btn{flex:0 0 auto}
   .nb-chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:12.5px;
@@ -726,9 +726,6 @@
           <input type="text" id="nb-areain" placeholder="지역 이름 (예: 포항, 보령시, 강남구, 애월)" autocomplete="off">
           <button class="btn sm" type="submit">보기</button>
         </form>
-        <div class="nb-search">
-          <input type="search" id="nb-q" placeholder="🔍 가게 이름으로 전국에서 찾기" autocomplete="off">
-        </div>
       </div>
       <p class="nearby-sub" id="nearby-sub">내 위치에서 가까운 순으로, 다른 사람들이 공개한 맛집입니다.</p>
       <div class="nb-cats" id="nb-cats"></div>
@@ -1110,7 +1107,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = '1.0.4';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
+  const APP_BUILD = '1.0.5';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1363,26 +1360,61 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   /* 지역맛집(공개) — spots 테이블 */
   const Spots = {
+    // 서버 표에 없는 칸이 있으면 그 칸만 빼고 다시 올립니다.
+    // (예전에 만든 spots 표에는 catName·memo 칸이 없어서, 그동안 새로 공개한 맛집이 전부 거절되고 있었음)
+    _missing:new Set(),
+    _row(p){
+      const r={ id:session.user.id+':'+p.id, user_id:session.user.id,
+        name:String(p.name||'').slice(0,100), addr:String(p.addr||'').slice(0,200), cat:p.cat||'etc',
+        catName:String(p.catName||'').slice(0,40), rating:rate5(p.rating),
+        lat:Number(p.lat), lng:Number(p.lng), url:safeKakaoUrl(p.url).slice(0,300),
+        // 메모는 '메모 공개' 안내를 보고 저장한 맛집만 올림
+        memo:(p.pubMemo && p.memo) ? String(p.memo).slice(0,500) : '',
+        by_name:'', updated_at:new Date().toISOString() };
+      this._missing.forEach(k=>delete r[k]);
+      return r;
+    },
+    async _upsert(rows){
+      for(let tries=0; tries<6; tries++){
+        const r=await fetch(sbBase()+'/rest/v1/spots',{method:'POST',
+          headers:Auth.hdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+          body:JSON.stringify(rows)});
+        if(r.ok) return {ok:true};
+        const t=await r.text().catch(()=> '');
+        const m=t.match(/Could not find the '([^']+)' column/);
+        if(r.status===400 && m && rows.length && m[1] in rows[0]){
+          this._missing.add(m[1]); rows.forEach(x=>delete x[m[1]]); continue;   // 없는 칸 빼고 다시
+        }
+        console.warn('주변맛집 올리기 실패', r.status, t);
+        return {ok:false, status:r.status, msg:t};
+      }
+      return {ok:false};
+    },
     async put(p){
       if(!p.lat || !p.lng) return 'noloc';
       if(!await Auth.ok()) return 'nologin';
       try{
-        const row=[{ id:session.user.id+':'+p.id, user_id:session.user.id,
-          name:p.name, addr:p.addr||'', cat:p.cat||'etc', catName:p.catName||'', rating:p.rating||0,
-          lat:p.lat, lng:p.lng, url:p.url||'',
-          // 메모는 '메모 공개' 안내를 보고 저장한 맛집만 올림 (예전에 공개한 맛집의 메모는 올리지 않음)
-          memo:(p.pubMemo && p.memo) ? String(p.memo).slice(0,500) : '',
-          by_name:'', updated_at:new Date().toISOString() }];
-        const send=rows=>fetch(sbBase()+'/rest/v1/spots',{method:'POST',
-          headers:Auth.hdr({'Prefer':'resolution=merge-duplicates,return=minimal'}),
-          body:JSON.stringify(rows)});
-        let r=await send(row);
-        // 서버 표에 memo 칸이 아직 없으면 메모 없이 다시 올림
-        if(!r.ok){ delete row[0].memo; r=await send(row); }
+        const res=await this._upsert([this._row(p)]);
         nearbyState.rows=null;   // 다음에 주변맛집 탭을 열면 새로 불러옴
-        if(!r.ok){ console.warn('주변맛집 올리기 실패', r.status, await r.text().catch(()=>'')); return 'fail'; }
-        return 'ok';
+        return res.ok ? 'ok' : 'fail';
       }catch(e){ return 'fail'; }
+    },
+    // 공개한 내 맛집 전부를 한 번에 다시 올림 (앱 켤 때·로그인할 때). 200개씩 묶어서
+    async putAll(list){
+      list=list.filter(p=>p.public && p.lat && p.lng);
+      if(!list.length || !await Auth.ok()) return {ok:0, fail:0};
+      let ok=0, fail=0;
+      for(let i=0;i<list.length;i+=200){
+        const chunk=list.slice(i,i+200);
+        try{
+          const res=await this._upsert(chunk.map(p=>this._row(p)));
+          if(res.ok){ ok+=chunk.length; continue; }
+        }catch(e){}
+        // 묶음이 실패하면 하나씩 올려서 문제 있는 것만 걸러냄
+        for(const p of chunk){ (await this.put(p))==='ok' ? ok++ : fail++; }
+      }
+      nearbyState.rows=null;
+      return {ok, fail};
     },
     async remove(pid){
       if(!await Auth.ok()) return;
@@ -1408,14 +1440,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     async all(){
       if(!cloudOn()) return null;
       try{ return await this._pages('select=*&order=updated_at.desc,id.asc', 10000); }catch(e){ return null; }
-    },
-    // 이름으로 전국 찾기 (띄어쓰기 무시: '왕생 굴구이' → 왕생*굴구이)
-    async search(text){
-      if(!cloudOn()) return null;
-      const t=String(text||'').replace(/[%*,()."'\\]/g,' ').trim();
-      if(!t) return [];
-      const pat='*'+t.split(/\s+/).join('*')+'*';
-      try{ return await this._pages('select=*&name=ilike.'+encodeURIComponent(pat)+'&order=updated_at.desc,id.asc', 3000); }catch(e){ return null; }
     },
     // 내 맛집 하나가 주변맛집 서버에 올라가 있는지
     async has(pid){
@@ -1489,8 +1513,9 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     await saveLocal();
     renderList(); drawPins(); renderPick();
     await Cloud.push();
-    // 공개로 표시된 맛집을 지역맛집에 반영
-    state.places.filter(p=>p.public && p.lat).forEach(p=>Spots.put(p));
+    // 공개로 표시된 맛집을 주변맛집에 반영 (한 번에 묶어서, 실패하면 알림)
+    const pub=await Spots.putAll(state.places);
+    if(pub.fail) toast('주변맛집에 '+pub.fail+'곳을 올리지 못했습니다. 잠시 뒤 앱을 다시 켜 주세요.');
   }
 
   /* 상단 태그라인의 동기화 점 */
@@ -1586,7 +1611,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   const NB_KEY='misiknote:nb';   // 마지막으로 고른 범위·지역·위치 (이 기기만)
   let nb=(()=>{ try{ return Object.assign({scope:'here',areaText:'',last:null}, JSON.parse(localStorage.getItem(NB_KEY)||'{}')); }catch(e){ return {scope:'here',areaText:'',last:null}; } })();
   const saveNb=()=>{ try{ localStorage.setItem(NB_KEY, JSON.stringify(nb)); }catch(e){} };
-  let nbQuery='';
+
 
   let nearbyCat='all';   // 주변맛집 종류 필터
 
@@ -1614,7 +1639,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const list=nearbyState.rows
       .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
       .filter(s=>{
-        if(nearbyState.mode==='all' || nearbyState.mode==='search') return true;   // 전국·이름 찾기: 지역 제한 없음
+        if(nearbyState.mode==='all') return true;   // 전국: 지역 제한 없음
         const k=areaKey(s.addr);
         if(myArea) return k ? k===myArea : s.dist<=20;
         return s.dist<=30;
@@ -1625,9 +1650,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       const total=nearbyState.rows.length;
       const areaName=myArea?myArea.split('|').join(' '):'이 지역';
       let hint;
-      if(nearbyState.mode==='search'){
-        hint='<b>'+esc(nbQuery)+'</b> 이름으로 공개된 맛집을 찾지 못했습니다.<br>띄어쓰기를 빼거나 이름 일부만 넣어 보세요. (예: 왕생굴)';
-      }else if(total===0){
+      if(total===0){
         hint=(nearbyState.mode==='all'?'아직 아무도':'이 근처에는 아직 아무도')+' 맛집을 공개하지 않았습니다.<br>위의 <b>전국</b>이나 <b>지역 고르기</b>로 다른 곳을 볼 수 있어요.';
       }else if(nearbyCat!=='all'){
         hint='<b>'+areaName+'</b>에 공개된 <b>'+cat(nearbyCat).name+'</b> 맛집이 아직 없습니다.<br>종류를 <b>전체</b>로 바꿔 보세요.';
@@ -1779,17 +1802,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     nearbyPage=1;
     paintNearby();
   }
-  async function searchNearby(q){
-    const box=$('#nearbybody');
-    box.innerHTML='<div class="nb-loading">‘'+esc(q)+'’ 찾는 중…</div>';
-    const rows=await Spots.search(q);
-    if(rows===null){ box.innerHTML='<div class="nb-empty">찾지 못했습니다. 인터넷 연결을 확인해 주세요.</div>'; return; }
-    const center = nearbyState.center || nb.last || nearbyCenter();
-    $('#nearby-sub').textContent='전국에서 ‘'+q+'’ 이름이 들어간 공개 맛집 '+rows.length+'곳 (가까운 순)';
-    nearbyState={ center, rows, area:'', mode:'search' };
-    nearbyPage=1; paintNearby();
-  }
-
   function paintScope(){
     $$('.nb-scope button').forEach(b=>b.classList.toggle('on', b.dataset.scope===nb.scope));
     $('#nb-areaform').hidden = nb.scope!=='area';
@@ -1803,7 +1815,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       box.innerHTML='<div class="nb-empty">주변맛집을 불러올 수 없습니다.<br>잠시 뒤 다시 시도해 주세요.</div>';
       return;
     }
-    if(nbQuery){ return searchNearby(nbQuery); }
     // 이미 불러온 게 있으면 다시 그리기만 (탭 전환 시 목록이 사라지지 않게)
     if(!force && nearbyState.center && nearbyState.rows && nearbyState.mode===nb.scope){ paintNearby(); return; }
 
@@ -1831,22 +1842,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   $('#nearby-refresh').onclick=()=>renderNearby(true);
   $$('.nb-scope button').forEach(b=>b.onclick=()=>{
     nb.scope=b.dataset.scope; saveNb();
-    nbQuery=''; $('#nb-q').value='';
     paintScope();
     if(nb.scope==='area'){ setTimeout(()=>$('#nb-areain').focus(),50); if(!nb.areaText){ renderNearby(true); return; } }
     renderNearby(true);
   });
   $('#nb-areaform').onsubmit=e=>{ e.preventDefault(); nb.areaText=$('#nb-areain').value.trim(); saveNb(); $('#nb-areain').blur(); renderNearby(true); };
-  let nbQT=null;
-  $('#nb-q').oninput=()=>{
-    clearTimeout(nbQT);
-    nbQT=setTimeout(()=>{
-      const q=$('#nb-q').value.trim();
-      if(q===nbQuery) return;
-      nbQuery=q;
-      if(q.length>=1) searchNearby(q); else renderNearby(true);
-    },450);
-  };
+
 
   /* ================= 나홀로 (혼행·혼밥 추천) ================= */
   // 혼밥: 카카오맵 검색(무료, 앱 내장 키).
