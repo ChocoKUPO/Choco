@@ -52,7 +52,7 @@
   button{cursor:pointer;border:0;background:none}
   :focus-visible{outline:2px solid var(--celadon);outline-offset:2px;border-radius:6px}
 
-  .app{max-width:520px;margin:0 auto;min-height:100dvh;background:var(--paper);
+  .app{max-width:var(--appw,520px);margin:0 auto;min-height:100dvh;background:var(--paper);
     position:relative;display:flex;flex-direction:column;box-shadow:0 0 0 1px rgba(19,26,23,.05)}
   .topbar{position:sticky;top:0;z-index:30;background:var(--paper);padding:18px 20px 12px;
     border-bottom:1px solid transparent;transition:border-color .2s}
@@ -259,7 +259,7 @@
   .pick input{width:17px;height:17px;accent-color:var(--celadon)}
   .pick .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:520px;margin:0 auto;
+  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:var(--appw,520px);margin:0 auto;
     background:var(--tabbar-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
     border-top:.5px solid var(--line);
     display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
@@ -590,6 +590,19 @@
   .guide-nav .btn{flex:1;padding:14px 16px;font-size:15px}
   .guide-nav .btn.ghost{flex:0 0 34%}
   .guide-nav #guide-next{background:var(--celadon);border-color:var(--celadon);color:#fff}
+  /* ── 큰 화면 (갤럭시 폴드 펼침·태블릿·가로 모드·PC) ──
+     폭 600px 이상이면 화면을 넓게 쓰고, 카드는 두 줄(이상)로 나란히 놓습니다. */
+  @media (min-width:600px){
+    :root{--appw:1100px}
+    .fab{left:auto;right:max(24px, calc((100vw - 1100px)/2 + 24px));transform:none;margin:0}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;align-items:start}
+    .cards>:not(.card){grid-column:1/-1}
+    #nearbybody{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:0 2px;padding:0 6px;align-items:start}
+    #nearbybody>:not(.nb-card){grid-column:1/-1}
+    #nearbybody .nb-card{margin:0 8px 12px}
+    .sheet{max-width:640px}
+    .guide-card{border-radius:22px;margin-bottom:24px}
+  }
 </style>
 
 <div class="app">
@@ -1075,7 +1088,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = '1.0.1';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
+  const APP_BUILD = '1.0.2';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
