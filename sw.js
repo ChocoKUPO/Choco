@@ -2,7 +2,8 @@
    - 앱 껍데기를 저장해 두어 인터넷이 끊겨도 앱이 열립니다.
    - 지도 타일, 카카오 SDK, Supabase 요청은 손대지 않고 그대로 통과시킵니다. */
 
-const VERSION = 'misiknote-r2-1.0.5';
+// 화면 버전과 별개인 내부 빌드 번호: 고칠 때마다 바뀌어야 폰이 새 파일을 받습니다
+const VERSION = 'misiknote-1.0.0-b0002';
 const SHELL = [
   './',
   './index.html',

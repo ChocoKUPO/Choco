@@ -327,7 +327,7 @@
   .nb-loading{margin:24px;text-align:center;font-size:13px;color:var(--ink-faint)}
   .nb-cats{display:flex;gap:7px;flex-wrap:wrap;padding:0 18px 14px}
   .nb-tools{padding:6px 18px 8px;display:flex;flex-direction:column;gap:8px}
-  .nb-scope{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+  .nb-scope{display:grid;grid-template-columns:repeat(2,1fr);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
   .nb-scope button{padding:9px 4px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink-soft);letter-spacing:-.03em;white-space:nowrap}
   .nb-scope button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
   .nb-area{display:flex;gap:6px}.nb-area[hidden]{display:none}
@@ -720,7 +720,6 @@
         <div class="nb-scope" role="tablist">
           <button data-scope="here" class="on">📍 내 동네</button>
           <button data-scope="area">🗺 지역 고르기</button>
-          <button data-scope="all">전국</button>
         </div>
         <form class="nb-area" id="nb-areaform" hidden>
           <input type="text" id="nb-areain" placeholder="지역 이름 (예: 포항, 보령시, 강남구, 애월)" autocomplete="off">
@@ -1107,7 +1106,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     etc: {id:'etc', name:'기타', e:'🍽', c:'#5E6B64'}
   };
   const FOLDERS = ['내 맛집','가보고 싶은 곳','재방문 각'];
-  const APP_BUILD = '1.0.5';  // 앱 버전: 고칠 때마다 끝자리 +1 (1.0.99 다음은 1.1.0) — sw.js VERSION도 같이
+  const APP_BUILD = '1.0.0';  // 화면에 보이는 앱 버전 (사용자가 '버전 올려줘' 할 때만 올림). 폰 갱신은 sw.js의 BUILD로
   const DKEY='misiknote:v7', SKEY='misiknote:session';
   const SEOUL={lat:37.5665,lng:126.9780};
   const SQL = [
@@ -1437,10 +1436,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       }
       return all.map(cleanSpot).filter(Boolean);
     },
-    async all(){
-      if(!cloudOn()) return null;
-      try{ return await this._pages('select=*&order=updated_at.desc,id.asc', 10000); }catch(e){ return null; }
-    },
     // 내 맛집 하나가 주변맛집 서버에 올라가 있는지
     async has(pid){
       if(!await Auth.ok()) return null;
@@ -1610,6 +1605,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
   let nearbyState={ center:null, rows:null, area:"", mode:'here' };   // 마지막 중심·불러온 데이터를 기억
   const NB_KEY='misiknote:nb';   // 마지막으로 고른 범위·지역·위치 (이 기기만)
   let nb=(()=>{ try{ return Object.assign({scope:'here',areaText:'',last:null}, JSON.parse(localStorage.getItem(NB_KEY)||'{}')); }catch(e){ return {scope:'here',areaText:'',last:null}; } })();
+  if(nb.scope!=='here' && nb.scope!=='area') nb.scope='here';
   const saveNb=()=>{ try{ localStorage.setItem(NB_KEY, JSON.stringify(nb)); }catch(e){} };
 
 
@@ -1639,7 +1635,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const list=nearbyState.rows
       .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
       .filter(s=>{
-        if(nearbyState.mode==='all') return true;   // 전국: 지역 제한 없음
         const k=areaKey(s.addr);
         if(myArea) return k ? k===myArea : s.dist<=20;
         return s.dist<=30;
@@ -1651,7 +1646,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       const areaName=myArea?myArea.split('|').join(' '):'이 지역';
       let hint;
       if(total===0){
-        hint=(nearbyState.mode==='all'?'아직 아무도':'이 근처에는 아직 아무도')+' 맛집을 공개하지 않았습니다.<br>위의 <b>전국</b>이나 <b>지역 고르기</b>로 다른 곳을 볼 수 있어요.';
+        hint='이 근처에는 아직 아무도 맛집을 공개하지 않았습니다.<br>위의 <b>지역 고르기</b>로 다른 곳을 볼 수 있어요.';
       }else if(nearbyCat!=='all'){
         hint='<b>'+areaName+'</b>에 공개된 <b>'+cat(nearbyCat).name+'</b> 맛집이 아직 없습니다.<br>종류를 <b>전체</b>로 바꿔 보세요.';
       }else{
@@ -1793,7 +1788,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       const rg=await regionOf(center);
       if(rg){ area=rg.key; if(rg.name) sub.textContent=label+' · 기준: '+rg.name; }
     }
-    const rows = mode==='here'||mode==='area' ? await Spots.near(center.lat, center.lng) : await Spots.all();
+    const rows = await Spots.near(center.lat, center.lng);
     if(rows===null){
       box.innerHTML='<div class="nb-empty">맛집을 불러오지 못했습니다.<br>인터넷 연결을 확인하고 잠시 뒤 다시 시도해 주세요.</div>';
       return;
@@ -1818,10 +1813,6 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     // 이미 불러온 게 있으면 다시 그리기만 (탭 전환 시 목록이 사라지지 않게)
     if(!force && nearbyState.center && nearbyState.rows && nearbyState.mode===nb.scope){ paintNearby(); return; }
 
-    if(nb.scope==='all'){
-      const center = nb.last || nearbyCenter();
-      return loadNearby(center, '전국에 공개된 맛집입니다. (마지막 위치에서 가까운 순)', 'all');
-    }
     if(nb.scope==='area'){
       const text=(nb.areaText||'').trim();
       if(!text){ box.innerHTML='<div class="nb-empty">위 칸에 보고 싶은 <b>지역 이름</b>을 넣고 <b>보기</b>를 눌러 주세요.<br>예: 포항, 보령시, 강남구, 애월</div>'; $('#nearby-sub').textContent=''; return; }
