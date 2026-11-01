@@ -722,7 +722,7 @@
           <button data-scope="area">🗺 지역 고르기</button>
         </div>
         <form class="nb-area" id="nb-areaform" hidden>
-          <input type="text" id="nb-areain" placeholder="지역 이름 (예: 포항, 보령시, 강남구, 애월)" autocomplete="off">
+          <input type="text" id="nb-areain" placeholder="예: 부산 / 해운대구 / 애월읍" autocomplete="off">
           <button class="btn sm" type="submit">보기</button>
         </form>
       </div>
@@ -1445,6 +1445,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         const d=await r.json(); return Array.isArray(d) && d.length>0;
       }catch(e){ return null; }
     },
+    // 위도·경도 사각형 범위 안의 공개 맛집 전부 (시·도 전체 보기용)
+    async box(b){
+      if(!cloudOn()) return null;
+      const q='select=*&lat=gte.'+b[0]+'&lat=lte.'+b[1]+'&lng=gte.'+b[2]+'&lng=lte.'+b[3]+'&order=updated_at.desc,id.asc';
+      try{ return await this._pages(q, 20000); }catch(e){ return null; }
+    },
     async near(lat,lng){
       if(!cloudOn() || !isFinite(lat) || !isFinite(lng)) return null;
       // 내 위치 기준 위아래 약 80km 범위만 받습니다 (같은 시·군·구는 이 안에 다 들어옴).
@@ -1635,8 +1641,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const list=nearbyState.rows
       .map(s=>Object.assign({}, s, {dist:distKm(center.lat,center.lng,s.lat,s.lng)}))
       .filter(s=>{
+        if(nearbyState.radius) return s.dist<=nearbyState.radius;          // 동네: 반경 안
         const k=areaKey(s.addr);
-        if(myArea) return k ? k===myArea : s.dist<=20;
+        if(nearbyState.prov) return k ? k.split('|')[0]===nearbyState.prov : true;   // 시·도 전체 (주소 모르면 범위 안이면 포함)
+        if(myArea) return k ? k===myArea : s.dist<=20;                      // 시·군·구
         return s.dist<=30;
       })
       .filter(s=>nearbyCat==='all' || s.cat===nearbyCat)
@@ -1741,22 +1749,73 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       }catch(e){ resolve(null); }
     });
   }
-  // 지역 이름(예: 보령, 강남구, 애월) → 좌표. 주소 검색 → 장소 검색 순서로 시도
-  function geocodeText(text){
-    return new Promise(resolve=>{
-      if(!(provider==='kakao' && window.kakao && kakao.maps.services)) return resolve(null);
-      const S=kakao.maps.services;
-      try{
-        new S.Geocoder().addressSearch(text,(r,st)=>{
-          if(st===S.Status.OK && r && r[0]) return resolve({lat:+r[0].y, lng:+r[0].x, name:r[0].address_name});
-          new S.Places().keywordSearch(text,(r2,st2)=>{
-            if(st2===S.Status.OK && r2 && r2[0]) return resolve({lat:+r2[0].y, lng:+r2[0].x, name:r2[0].address_name||r2[0].place_name});
-            resolve(null);
-          });
-        });
-      }catch(e){ resolve(null); }
+  // 시·도 이름을 정확히 적었을 때 (부산진구·광주시처럼 앞글자만 같은 건 해당 안 됨)
+  const PROV_EXACT={
+    '서울':'서울','서울시':'서울','서울특별시':'서울','부산':'부산','부산시':'부산','부산광역시':'부산',
+    '대구':'대구','대구시':'대구','대구광역시':'대구','인천':'인천','인천시':'인천','인천광역시':'인천',
+    '광주':'광주','광주광역시':'광주','대전':'대전','대전시':'대전','대전광역시':'대전',
+    '울산':'울산','울산시':'울산','울산광역시':'울산','세종':'세종','세종시':'세종','세종특별자치시':'세종',
+    '경기':'경기','경기도':'경기','강원':'강원','강원도':'강원','강원특별자치도':'강원',
+    '충북':'충북','충청북도':'충북','충남':'충남','충청남도':'충남',
+    '전북':'전북','전라북도':'전북','전북특별자치도':'전북','전남':'전남','전라남도':'전남',
+    '경북':'경북','경상북도':'경북','경남':'경남','경상남도':'경남','제주':'제주','제주도':'제주','제주특별자치도':'제주'
+  };
+  // 시·도 범위 (위도 아래, 위도 위, 경도 왼쪽, 경도 오른쪽) — 섬까지 넉넉하게
+  const PROV_BOX={
+    '서울':[37.40,37.73,126.74,127.21],'부산':[34.85,35.42,128.73,129.33],'대구':[35.58,36.04,128.33,128.79],
+    '인천':[36.95,38.00,124.55,126.82],'광주':[35.03,35.28,126.62,127.04],'대전':[36.17,36.51,127.22,127.58],
+    '울산':[35.30,35.75,128.93,129.49],'세종':[36.39,36.75,127.11,127.42],'경기':[36.88,38.31,126.35,127.88],
+    '강원':[37.00,38.64,127.06,129.39],'충북':[35.98,37.29,127.25,128.68],'충남':[35.95,37.09,125.95,127.67],
+    '전북':[35.27,36.19,125.85,127.95],'전남':[33.85,35.53,124.95,127.92],'경북':[35.54,37.58,127.77,131.95],
+    '경남':[34.43,35.94,127.54,129.27],'제주':[33.08,34.02,126.08,127.00]
+  };
+  const PROV_LABEL={'서울':'서울','부산':'부산','대구':'대구','인천':'인천','광주':'광주','대전':'대전','울산':'울산','세종':'세종',
+    '경기':'경기도','강원':'강원도','충북':'충청북도','충남':'충청남도','전북':'전라북도','전남':'전라남도','경북':'경상북도','경남':'경상남도','제주':'제주도'};
+  function kakaoAddr(q){
+    return new Promise(res=>{
+      try{ new kakao.maps.services.Geocoder().addressSearch(q,(r,st)=>res(st===kakao.maps.services.Status.OK && r && r[0] ? r[0] : null)); }
+      catch(e){ res(null); }
     });
   }
+  function kakaoKeyword(q){
+    return new Promise(res=>{
+      try{ new kakao.maps.services.Places().keywordSearch(q,(r,st)=>res(st===kakao.maps.services.Status.OK && r && r[0] ? r[0] : null)); }
+      catch(e){ res(null); }
+    });
+  }
+  // 지역 이름 → {level:'prov'|'sgg'|'dong', prov, key, center, name, radius}
+  async function resolveArea(text){
+    const t=String(text||'').replace(/\s+/g,'');
+    if(!t) return null;
+    // ① 시·도 이름이면 시·도 전체
+    if(PROV_EXACT[t]){
+      const pv=PROV_EXACT[t], b=PROV_BOX[pv];
+      return {level:'prov', prov:pv, name:PROV_LABEL[pv]+' 전체', center:{lat:(b[0]+b[1])/2, lng:(b[2]+b[3])/2}};
+    }
+    if(!(provider==='kakao' && window.kakao && kakao.maps.services)) return null;
+    // ② 주소로 찾기 ("포항"처럼 '시'를 빼고 적어도 되게 몇 가지로 시도)
+    const raw=String(text).trim();
+    let hit=null;
+    for(const q of [raw, raw+'시', raw+'군', raw+'구']){ hit=await kakaoAddr(q); if(hit) break; }
+    if(hit){
+      const a=hit.address||hit.road_address||{};
+      const pv=provOf(a.region_1depth_name||'');
+      const d2=a.region_2depth_name||'', d3=(a.region_3depth_h_name||a.region_3depth_name||'');
+      const center={lat:+hit.y, lng:+hit.x};
+      if(pv && !d2 && !d3) return {level:'prov', prov:pv, name:PROV_LABEL[pv]+' 전체', center};
+      if(pv==='세종' && !d3) return {level:'sgg', key:'세종|세종', name:'세종', center};
+      if(pv && d2 && !d3) return {level:'sgg', key:pv+'|'+normArea(d2), name:(a.region_1depth_name+' '+d2).trim(), center};
+      if(pv && d3){
+        const big=/[읍면리]$/.test(d3);
+        return {level:'dong', radius:big?6:2.5, name:[a.region_1depth_name,d2,d3].filter(Boolean).join(' '), center};
+      }
+    }
+    // ③ 그래도 없으면 장소 이름으로 (예: 성산일출봉) → 그 근처 동네
+    const k=await kakaoKeyword(raw);
+    if(k) return {level:'dong', radius:3, name:(k.place_name||raw)+' 근처', center:{lat:+k.y, lng:+k.x}};
+    return null;
+  }
+
   // 현재 위치: ① 빠른 위치(와이파이·기지국) → ② 정밀 위치(GPS) → ③ 마지막으로 잡혔던 위치 → ④ 최근 저장한 맛집
   function getPos(opts){
     return new Promise(res=>{
@@ -1778,22 +1837,26 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     return {c:nearbyCenter(), how:'recent'};
   }
 
-  async function loadNearby(center, label, mode){
+  async function loadNearby(center, label, mode, ar){
     const box=$('#nearbybody'), sub=$('#nearby-sub');
     mode=mode||'here';
     sub.textContent=label;
     box.innerHTML='<div class="nb-loading">맛집을 불러오는 중…</div>';
-    let area='';
-    if(mode==='here' || mode==='area'){
-      const rg=await regionOf(center);
-      if(rg){ area=rg.key; if(rg.name) sub.textContent=label+' · 기준: '+rg.name; }
+    let area='', prov='', radius=0, rows;
+    if(ar && ar.level==='prov'){            // 시·도 전체
+      prov=ar.prov; rows=await Spots.box(PROV_BOX[prov]);
+    }else if(ar && ar.level==='dong'){      // 동네만 (반경)
+      radius=ar.radius; rows=await Spots.near(center.lat, center.lng);
+    }else{                                  // 시·군·구 (내 동네 포함)
+      if(ar && ar.key){ area=ar.key; }
+      else{ const rg=await regionOf(center); if(rg){ area=rg.key; if(rg.name) sub.textContent=label+' · 기준: '+rg.name; } }
+      rows=await Spots.near(center.lat, center.lng);
     }
-    const rows = await Spots.near(center.lat, center.lng);
     if(rows===null){
       box.innerHTML='<div class="nb-empty">맛집을 불러오지 못했습니다.<br>인터넷 연결을 확인하고 잠시 뒤 다시 시도해 주세요.</div>';
       return;
     }
-    nearbyState={ center, rows, area, mode };
+    nearbyState={ center, rows, area, prov, radius, mode };
     nearbyPage=1;
     paintNearby();
   }
@@ -1815,11 +1878,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
     if(nb.scope==='area'){
       const text=(nb.areaText||'').trim();
-      if(!text){ box.innerHTML='<div class="nb-empty">위 칸에 보고 싶은 <b>지역 이름</b>을 넣고 <b>보기</b>를 눌러 주세요.<br>예: 포항, 보령시, 강남구, 애월</div>'; $('#nearby-sub').textContent=''; return; }
-      box.innerHTML='<div class="nb-loading">‘'+esc(text)+'’ 위치를 찾는 중…</div>';
-      const g=await geocodeText(text);
-      if(!g){ box.innerHTML='<div class="nb-empty"><b>'+esc(text)+'</b> 지역을 찾지 못했습니다.<br>시·군·구 이름으로 다시 넣어 보세요. (예: 보령시)</div>'; return; }
-      return loadNearby({lat:g.lat,lng:g.lng}, '‘'+text+'’에 공개된 맛집입니다.', 'area');
+      if(!text){ box.innerHTML='<div class="nb-empty">위 칸에 보고 싶은 <b>지역 이름</b>을 넣고 <b>보기</b>를 눌러 주세요.<br><b>부산</b> → 부산 전체 · <b>해운대구</b> → 해운대구만 · <b>우동</b> → 그 동네만</div>'; $('#nearby-sub').textContent=''; return; }
+      box.innerHTML='<div class="nb-loading">‘'+esc(text)+'’ 지역을 찾는 중…</div>';
+      const ar=await resolveArea(text);
+      if(!ar){ box.innerHTML='<div class="nb-empty"><b>'+esc(text)+'</b> 지역을 찾지 못했습니다.<br>예: 부산 · 해운대구 · 포항시 · 애월읍</div>'; $('#nearby-sub').textContent=''; return; }
+      const label = ar.level==='prov' ? ar.name+'에 공개된 맛집입니다.'
+        : ar.level==='sgg' ? ar.name+'에 공개된 맛집입니다.'
+        : ar.name+' (반경 '+ar.radius+'km) 공개 맛집입니다.';
+      return loadNearby(ar.center, label, 'area', ar);
     }
     // 내 동네
     box.innerHTML='<div class="nb-loading">현재 위치를 확인하는 중…</div>';
