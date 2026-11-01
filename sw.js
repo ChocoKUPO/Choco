@@ -3,7 +3,7 @@
    - 지도 타일, 카카오 SDK, Supabase 요청은 손대지 않고 그대로 통과시킵니다. */
 
 // 화면 버전과 별개인 내부 빌드 번호: 고칠 때마다 바뀌어야 폰이 새 파일을 받습니다
-const VERSION = 'misiknote-1.0.0-b0003';
+const VERSION = 'misiknote-1.0.0-b0004';
 const SHELL = [
   './',
   './index.html',

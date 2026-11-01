@@ -1671,6 +1671,8 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     const shown=list.slice(start, start+NB_PAGE_SIZE);
 
     box.innerHTML='';
+    // 지역 고르기는 다른 지역을 보는 것이라 거리(km)를 보여주지 않음 (어디서부터 거리인지 헷갈림)
+    const showDist = nearbyState.mode!=='area';
     shown.forEach(s=>{
       const c=cat(s.cat);
       const sr=rate5(s.rating);
@@ -1684,11 +1686,12 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
           '<div class="nb-kind">'+esc(kindLine)+'</div>'+
           '<div class="nb-stars">'+stars+'</div>'+
           (s.addr?'<div class="nb-addr">'+esc(s.addr)+'</div>':'')+
-          '<div class="nb-meta"><span class="nb-dist">'+s.dist.toFixed(s.dist<10?1:0)+'km</span>'+
-            (mine&&s.user_id===mine?'<span class="nb-by">· 내 맛집</span>':'')+
-          '</div>'+
+          ((showDist || (mine&&s.user_id===mine)) ? '<div class="nb-meta">'+
+            (showDist?'<span class="nb-dist">'+s.dist.toFixed(s.dist<10?1:0)+'km</span>':'')+
+            (mine&&s.user_id===mine?'<span class="nb-by">'+(showDist?'· ':'')+'내 맛집</span>':'')+
+          '</div>' : '')+
         '</div>';
-      card.onclick=()=>openViewer(s);   // 바로 카카오맵 대신 보기 화면(블로그·네이버·카카오 바로가기)
+      card.onclick=()=>openViewer(showDist ? s : Object.assign({}, s, {dist:undefined}));   // 바로 카카오맵 대신 보기 화면(블로그·네이버·카카오 바로가기)
       box.appendChild(card);
     });
     // 페이저
@@ -1884,7 +1887,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       if(!ar){ box.innerHTML='<div class="nb-empty"><b>'+esc(text)+'</b> 지역을 찾지 못했습니다.<br>예: 부산 · 해운대구 · 포항시 · 애월읍</div>'; $('#nearby-sub').textContent=''; return; }
       const label = ar.level==='prov' ? ar.name+'에 공개된 맛집입니다.'
         : ar.level==='sgg' ? ar.name+'에 공개된 맛집입니다.'
-        : ar.name+' (반경 '+ar.radius+'km) 공개 맛집입니다.';
+        : ar.name+' 동네에 공개된 맛집입니다.';
       return loadNearby(ar.center, label, 'area', ar);
     }
     // 내 동네
@@ -2762,7 +2765,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
           (spot ? '' : '<span class="vfold">'+esc(p.folder||'내 맛집')+'</span>')+'</div>'+
         '<div class="vname">'+esc(p.name)+'</div>'+
         '<div class="vstars">'+stars+'</div>'+
-        (spot ? '<div class="vfrom">📍 '+(typeof spot.dist==='number'?(spot.dist.toFixed(spot.dist<10?1:0)+'km · '):'')+'주변 사람이 공개한 맛집</div>' : '')+
+        (spot ? '<div class="vfrom">📍 '+(typeof spot.dist==='number'?(spot.dist.toFixed(spot.dist<10?1:0)+'km · 주변 사람이'):'다른 사람이')+' 공개한 맛집</div>' : '')+
       '</div>'+
       '<div class="vacts">'+
         '<a href="'+esc(naverBlogUrl(p))+'" target="_blank" rel="noopener"><span class="ico nv">B</span>블로그 후기</a>'+
