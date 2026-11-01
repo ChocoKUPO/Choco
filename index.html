@@ -1691,7 +1691,14 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
             (mine&&s.user_id===mine?'<span class="nb-by">'+(showDist?'· ':'')+'내 맛집</span>':'')+
           '</div>' : '')+
         '</div>';
-      card.onclick=()=>openViewer(showDist ? s : Object.assign({}, s, {dist:undefined}));   // 바로 카카오맵 대신 보기 화면(블로그·네이버·카카오 바로가기)
+      card.onclick=()=>{
+        // 내가 공개한 맛집이면 내 맛집 보기로 (메모·수정까지 그대로)
+        if(mine && s.user_id===mine){
+          const pid=String(s.id||'').slice(mine.length+1);
+          if(state.places.some(x=>x.id===pid)) return openViewer(pid, {readonly:true});   // 내 메모까지 보되 수정은 안 됨
+        }
+        openViewer(showDist ? s : Object.assign({}, s, {dist:undefined}));
+      };   // 바로 카카오맵 대신 보기 화면(블로그·네이버·카카오 바로가기)
       box.appendChild(card);
     });
     // 페이저
@@ -2741,31 +2748,34 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
 
   // 맛집 보기: 내 맛집(id) 또는 주변맛집 공개 맛집(객체)을 보기 전용 화면으로 엽니다
   let viewSpot=null;
-  function openViewer(arg){
+  function openViewer(arg, opt){
+    const ro = !!(opt && opt.readonly);   // 주변맛집에서 연 경우: 내 맛집이라도 보기만
     const spot = (typeof arg==='object' && arg) ? arg : null;
+    const spotMine = !!(spot && session && session.user && spot.user_id===session.user.id);
     const p = spot || state.places.find(x=>x.id===arg); if(!p) return;
-    viewing = spot ? null : p.id; viewSpot = spot;
-    $('#viewsheet').classList.toggle('readonly', !!spot);
+    viewing = (spot||ro) ? null : p.id; viewSpot = spot;
+    $('#viewsheet').classList.toggle('readonly', !!spot || ro);
     const c=cat(p.cat);
     const kind=[c.name, (p.catName||'').trim()].filter(Boolean).join(' · ');
     const r=rate5(p.rating);
     const stars='★'.repeat(r)+'<span class="off">'+'★'.repeat(5-r)+'</span>'+
-      (spot ? '<span class="lbl">'+(r?'공개한 사람의 별점':'별점 없음')+'</span>' : (r?'':'<span class="lbl">아직 별점 없음</span>'));
+      (spot ? '<span class="lbl">'+(r?(spotMine?'내 별점':'공개한 사람의 별점'):'별점 없음')+'</span>' : (r?'':'<span class="lbl">아직 별점 없음</span>'));
     const tags=(p.tags||[]).map(t=>'<span class="tag plain">#'+esc(t)+'</span>').join('');
     let rows='';
     if(p.addr) rows+='<div class="vrow"><span class="k">주소</span><span class="v vsel">'+esc(p.addr)+'</span><button class="vcopy" id="vcopy" type="button">복사</button></div>';
-    if(!spot && p.public) rows+='<div class="vrow"><span class="k">주변맛집</span><span class="v" id="vpub">공개 상태 확인 중…</span></div>';
+    if(!spot && !ro && p.public) rows+='<div class="vrow"><span class="k">주변맛집</span><span class="v" id="vpub">공개 상태 확인 중…</span></div>';
     if(!spot && p.visited) rows+='<div class="vrow"><span class="k">방문일</span><span class="v">'+esc(p.visited)+'</span></div>';
 
-    $('#viewtitle').textContent = spot ? '주변맛집' : '맛집 보기';
-    $('#viewedit').hidden = !!spot;
+    $('#viewtitle').textContent = (spot||ro) ? '주변맛집' : '맛집 보기';
+    $('#viewedit').hidden = !!spot || ro;
     $('#viewbody').innerHTML =
       '<div class="vcover" style="--cc:'+c.c+'">'+
         '<div class="vtop"><div class="vemoji">'+c.e+'</div><div class="vkind">'+esc(kind)+'</div>'+
           (spot ? '' : '<span class="vfold">'+esc(p.folder||'내 맛집')+'</span>')+'</div>'+
         '<div class="vname">'+esc(p.name)+'</div>'+
         '<div class="vstars">'+stars+'</div>'+
-        (spot ? '<div class="vfrom">📍 '+(typeof spot.dist==='number'?(spot.dist.toFixed(spot.dist<10?1:0)+'km · 주변 사람이'):'다른 사람이')+' 공개한 맛집</div>' : '')+
+        (spot ? '<div class="vfrom">📍 '+(typeof spot.dist==='number'?(spot.dist.toFixed(spot.dist<10?1:0)+'km · '):'')+(spotMine?'내가':(typeof spot.dist==='number'?'주변 사람이':'다른 사람이'))+' 공개한 맛집</div>' : '')+
+        (ro ? '<div class="vfrom">📍 내가 공개한 맛집 · 수정은 목록 탭에서</div>' : '')+
       '</div>'+
       '<div class="vacts">'+
         '<a href="'+esc(naverBlogUrl(p))+'" target="_blank" rel="noopener"><span class="ico nv">B</span>블로그 후기</a>'+
@@ -2775,10 +2785,10 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       (tags ? '<div class="vmeta">'+tags+'</div>' : '')+
       rows+
       '<div class="vsub">메모</div>'+(p.memo ? '<div class="vmemo2" style="--cc:'+c.c+'">'+esc(p.memo)+'</div>'
-        : '<div class="vmemo2 empty">'+(spot?'공개한 사람이 남긴 메모가 없어요.':'아직 메모가 없어요. 오른쪽 위 <b>수정</b>에서 남길 수 있어요.')+'</div>');
+        : '<div class="vmemo2 empty">'+(spot?(spotMine?'공개된 메모가 없어요.':'공개한 사람이 남긴 메모가 없어요.'):(ro?'메모가 없어요.':'아직 메모가 없어요. 오른쪽 위 <b>수정</b>에서 남길 수 있어요.'))+'</div>');
 
     const cp=$('#vcopy'); if(cp) cp.onclick=()=>copyText(p.addr,'주소를 복사했습니다.');
-    if(!spot && p.public) checkPub(p);
+    if(!spot && !ro && p.public) checkPub(p);
     $('#scrim').classList.add('on'); $('#viewsheet').classList.add('on');
     $('#viewsheet').scrollTop=0;
   }
