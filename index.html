@@ -2775,7 +2775,7 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         '<div class="vname">'+esc(p.name)+'</div>'+
         '<div class="vstars">'+stars+'</div>'+
         (spot ? '<div class="vfrom">📍 '+(typeof spot.dist==='number'?(spot.dist.toFixed(spot.dist<10?1:0)+'km · '):'')+(spotMine?'내가':(typeof spot.dist==='number'?'주변 사람이':'다른 사람이'))+' 공개한 맛집</div>' : '')+
-        (ro ? '<div class="vfrom">📍 내가 공개한 맛집 · 수정은 목록 탭에서</div>' : '')+
+        (ro ? '<div class="vfrom">📍 내가 공개한 맛집</div>' : '')+
       '</div>'+
       '<div class="vacts">'+
         '<a href="'+esc(naverBlogUrl(p))+'" target="_blank" rel="noopener"><span class="ico nv">B</span>블로그 후기</a>'+
