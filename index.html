@@ -1423,18 +1423,32 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       }catch(e){}
       nearbyState.rows=null;
     },
+    // 같은 맛집이 두 번 세어지지 않게 중복 제거
+    // ① 같은 번호(id)  ② 같은 사람이 올린 같은 이름+주소 (기기 두 대에서 올린 경우)
+    // 최신순으로 받으므로 먼저 나온 것(최신)을 남깁니다.
+    _dedupe(arr){
+      const ids=new Set(), keys=new Set(), out=[];
+      const nz=v=>String(v||'').replace(/\s+/g,'').toLowerCase();
+      for(const s of arr){
+        if(ids.has(s.id)) continue;
+        const k=s.user_id+'|'+nz(s.name)+'|'+nz(s.addr);
+        if(keys.has(k)) continue;
+        ids.add(s.id); keys.add(k); out.push(s);
+      }
+      return out;
+    },
     // 페이지 나눠 끝까지 받기 (서버는 한 번에 1000개까지만 줌)
     async _pages(q, max){
       const all=[]; const PAGE=1000;
       for(let off=0; off<(max||10000); off+=PAGE){
         const r=await fetch(sbBase()+'/rest/v1/spots?'+q+'&limit='+PAGE+'&offset='+off,{headers:{'apikey':sbKey()}});
-        if(!r.ok) return all.length ? all.map(cleanSpot).filter(Boolean) : null;
+        if(!r.ok) return all.length ? this._dedupe(all.map(cleanSpot).filter(Boolean)) : null;
         const d=await r.json();
         if(!Array.isArray(d)) break;
         all.push(...d);
         if(d.length<PAGE) break;
       }
-      return all.map(cleanSpot).filter(Boolean);
+      return this._dedupe(all.map(cleanSpot).filter(Boolean));
     },
     // 내 맛집 하나가 주변맛집 서버에 올라가 있는지
     async has(pid){
@@ -1464,13 +1478,13 @@ if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
         const all=[]; const PAGE=1000;
         for(let off=0; off<10000; off+=PAGE){
           const r=await fetch(sbBase()+'/rest/v1/spots?'+q+'&limit='+PAGE+'&offset='+off,{headers:{'apikey':sbKey()}});
-          if(!r.ok) return all.length ? all.map(cleanSpot).filter(Boolean) : null;
+          if(!r.ok) return all.length ? Spots._dedupe(all.map(cleanSpot).filter(Boolean)) : null;
           const d=await r.json();
           if(!Array.isArray(d)) break;
           all.push(...d);
           if(d.length<PAGE) break;
         }
-        return all.map(cleanSpot).filter(Boolean);
+        return Spots._dedupe(all.map(cleanSpot).filter(Boolean));
       }catch(e){ return null; }
     }
   };
